@@ -1,7 +1,8 @@
 import os
-import pygame, pygame.gfxdraw
+import pygame
 import random
 import math
+pygame.init()
 
 GRAVITY = 50
 FPS = 60
