@@ -2,6 +2,7 @@ import os
 import pygame
 import random
 import math
+import copy
 
 pygame.init()
 pygame.mouse.set_visible(False)
@@ -37,6 +38,7 @@ def load_image(name, color_key=None):
 class Interface:
     def __init__(self, surface):
         self.interface_surface = pygame.Surface(surface.get_size(), pygame.SRCALPHA, 32)
+        self.grid_surface = self.draw_background()
         self.labels = dict()
         self.font = pygame.font.SysFont(None, 20)
 
@@ -58,33 +60,36 @@ class Interface:
         pygame.draw.line(self.interface_surface, 'green', (pygame.mouse.get_pos()[0], self.interface_surface.get_size()[1]),
                          (pygame.mouse.get_pos()[0], pygame.mouse.get_pos()[1] + rect_size // 2))
 
-    def draw_grid(self):
+    def draw_background(self):
+        grid_surface = pygame.Surface(self.interface_surface.get_size(), pygame.SRCALPHA, 32)
+        grid_surface.fill((0, 0, 0, 0))
         for i in range(1, 160):
-            pygame.draw.line(self.interface_surface, (0, 15, 0), (i * 9, 0), (i * 9, self.interface_surface.get_height()))
+            pygame.draw.line(grid_surface, (0, 15, 0), (i * 9, 0), (i * 9, self.interface_surface.get_height()))
 
         for i in range(1, 100):
-            pygame.draw.line(self.interface_surface, (0, 15, 0), (0, i * 9), (self.interface_surface.get_width(), i * 9))
+            pygame.draw.line(grid_surface, (0, 15, 0), (0, i * 9), (self.interface_surface.get_width(), i * 9))
 
         for i in range(1, 16):
-            pygame.draw.line(self.interface_surface, (0, 35, 0), (i * 90, 0), (i * 90, self.interface_surface.get_height()))
+            pygame.draw.line(grid_surface, (0, 35, 0), (i * 90, 0), (i * 90, self.interface_surface.get_height()))
 
         for i in range(1, 10):
-            pygame.draw.line(self.interface_surface, (0, 35, 0), (0, i * 90), (self.interface_surface.get_width(), i * 90))
+            pygame.draw.line(grid_surface, (0, 35, 0), (0, i * 90), (self.interface_surface.get_width(), i * 90))
+
+        return grid_surface
 
     def get_cursor_global_pos(self):
         return map_cam_pos_x - (self.interface_surface.get_width() // 2 - pygame.mouse.get_pos()[0]) * MAP_VIEW_SIZE,\
                map_cam_pos_y - (self.interface_surface.get_height() // 2 - pygame.mouse.get_pos()[1]) * MAP_VIEW_SIZE
 
     def render_on_map(self):
-        self.interface_surface.fill((0, 0, 0, 0))
-        self.draw_grid()
-        self.draw_label()
+        self.interface_surface = copy.copy(self.grid_surface)
         self.draw_cursor()
+        self.draw_label()
+
 
     def draw_label(self):
         for key in self.labels.keys():
             pygame.draw.line(self.interface_surface, 'green', key.pos_on_map(), (key.pos_on_map()[0] + 50, key.pos_on_map()[1] - 50))
-            text_len = sum(map(len, self.labels[key])) * 10
 
             out = self.font.render(' '.join(self.labels[key]), True, 'green')
             self.interface_surface.blit(out, (key.pos_on_map()[0] + 55, key.pos_on_map()[1] - 68))
@@ -197,23 +202,33 @@ class PhysicalObject:
         return self.a * (1 + self.e)
 
     def draw_orbit_ellipse(self):
-        self.render_counter = (self.render_counter + 1) % 1
-        # how often we update ellipses
+        self.calculate_orbit_ellipse()
 
-        if self.orbit_type == 'Unknown orbit' and -0.02 < abs(self.on_apse_line()) - 90 < 0.02:
+        if self.orbit_type != 'Stable orbit':
+            return None
+
+        x_ellipse = map_view.get_width() // 2 - (
+                    map_cam_pos_x - int(self.orbit_parent.x - self.calculate_periapsis())) / MAP_VIEW_SIZE
+        y_ellipse = map_view.get_height() // 2 - (
+                    map_cam_pos_y - int(self.orbit_parent.y - self.b)) / MAP_VIEW_SIZE
+
+        # map_view.blit(pygame.transform.scale(self.ellipse_surface, (int(self.a * 2 / MAP_VIEW_SIZE), int(self.b * 2 / MAP_VIEW_SIZE))), (x_ellipse, y_ellipse))
+        pygame.draw.ellipse(map_view, (0, 100, 0),
+                            (x_ellipse, y_ellipse, int(self.a * 2 / MAP_VIEW_SIZE), int(self.b * 2 / MAP_VIEW_SIZE)), 1)
+
+    def calculate_orbit_ellipse(self):
+        if self.orbit_type == 'Unknown orbit' and -1 < abs(self.on_apse_line()) - 90 < 1:
             self.orbit_type = 'Stable orbit'
             self.apocenter_argument = math.degrees(math.atan((self.orbit_parent.x - self.x) / (self.orbit_parent.y - self.y)))
 
-        if self.orbit_type == 'Stable orbit':
-            if not self.render_counter:
-                self.ellipse_surface = pygame.Surface((int(self.a * 2 / MAP_VIEW_SIZE), int(self.b * 2 / MAP_VIEW_SIZE)), pygame.SRCALPHA, 32)
-                self.ellipse_surface.fill((0, 0, 0, 0))
-                self.x_ellipse = map_view.get_width() // 2 - (map_cam_pos_x - int(self.orbit_parent.x - self.calculate_periapsis())) / MAP_VIEW_SIZE
-                self.y_ellipse = map_view.get_height() // 2 - (map_cam_pos_y - int(self.orbit_parent.y - self.b)) / MAP_VIEW_SIZE
+            self.ellipse_surface = pygame.Surface((int(self.a * 2 / 250), int(self.b * 2 / 250)), pygame.SRCALPHA, 32)
+            self.ellipse_surface.fill((0, 0, 0, 0))
 
-            pygame.draw.ellipse(map_view, (0, 100, 0),
-                                (self.x_ellipse, self.y_ellipse, int(self.a * 2 / MAP_VIEW_SIZE), int(self.b * 2 / MAP_VIEW_SIZE)), 1)
+            # pygame.draw.ellipse(self.ellipse_surface, (0, 100, 0),
+                                # (0, 0, int(self.a * 2 / MAP_VIEW_SIZE), int(self.b * 2 / MAP_VIEW_SIZE)), 1)
 
+        else:
+            return None
 
     def on_apse_line(self):
         speed_angle = math.degrees(math.atan(self.speed_x / self.speed_y))
@@ -376,6 +391,7 @@ class Planet:
         self.radius = radius
         self.mass = mass
         self.color = color
+        planets.append(self)
 
     def update(self):
         interface.add_text_to_label(self, self.name, 'x: ' + str(self.x), 'y: ' + str(self.y))
@@ -423,19 +439,15 @@ focus_object = None
 all_sprites = pygame.sprite.Group()
 pygame.mouse.set_visible(True)
 
-hero = Spaceship(all_sprites, '--Name--', 201100, 225000, angle=0, speed_x=0, speed_y=130)
+hero = Spaceship(all_sprites, '--Name--', 201100, 225000, angle=0, speed_x=0, speed_y=140)
 
 planets = []
 
 base_planet = Planet('Alpha', 360000, 225000, 6000, 20000)
 moon = Moon('Phi', 200000, 225000, 1000, 5000, 0, 19.3, base_planet)
-# moon_2 = Moon('Tau', 250000, 225000, 1000, 5000, 0, 18, base_planet)
-# moon_3 = Moon('Theta', 245000, 225000, 1000, 0, 0, 23, base_planet)
+moon_2 = Moon('Tau', 250000, 226000, 1000, 5000, 0, 18, base_planet)
+moon_3 = Moon('Theta', 260000, 226000, 1000, 5000, 0, 15, base_planet)
 
-planets.append(base_planet)
-planets.append(moon)
-# planets.append(moon_2)
-# planets.append(moon_3)
 
 running = True
 clock = pygame.time.Clock()
