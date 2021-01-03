@@ -86,7 +86,6 @@ class Interface:
         self.draw_cursor()
         self.draw_label()
 
-
     def draw_label(self):
         for key in self.labels.keys():
             pygame.draw.line(self.interface_surface, 'green', key.pos_on_map(), (key.pos_on_map()[0] + 50, key.pos_on_map()[1] - 50))
@@ -212,7 +211,6 @@ class PhysicalObject:
         y_ellipse = map_view.get_height() // 2 - (
                     map_cam_pos_y - int(self.orbit_parent.y - self.b)) / MAP_VIEW_SIZE
 
-        # map_view.blit(pygame.transform.scale(self.ellipse_surface, (int(self.a * 2 / MAP_VIEW_SIZE), int(self.b * 2 / MAP_VIEW_SIZE))), (x_ellipse, y_ellipse))
         pygame.draw.ellipse(map_view, (0, 100, 0),
                             (x_ellipse, y_ellipse, int(self.a * 2 / MAP_VIEW_SIZE), int(self.b * 2 / MAP_VIEW_SIZE)), 1)
 
@@ -418,7 +416,6 @@ class Moon(PhysicalObject, OrbitMarker, Planet):
 
     def update(self):
         self.physical_move(planets=planets)
-        self.make_line()
         interface.add_text_to_label(self, self.name, 'x: ' + str(int(self.x)), 'y: ' + str(int(self.y)), self.orbit_type)
 
 
@@ -439,14 +436,14 @@ focus_object = None
 all_sprites = pygame.sprite.Group()
 pygame.mouse.set_visible(True)
 
-hero = Spaceship(all_sprites, '--Name--', 201100, 225000, angle=0, speed_x=0, speed_y=140)
+hero = Spaceship(all_sprites, '--Name--', 201100, 225000, angle=0, speed_x=0, speed_y=160)
 
 planets = []
 
-base_planet = Planet('Alpha', 360000, 225000, 6000, 20000)
-moon = Moon('Phi', 200000, 225000, 1000, 5000, 0, 19.3, base_planet)
-moon_2 = Moon('Tau', 250000, 226000, 1000, 5000, 0, 18, base_planet)
-moon_3 = Moon('Theta', 260000, 226000, 1000, 5000, 0, 15, base_planet)
+base_planet = Planet('Alpha', 360000, 225000, 6000, 100000)
+moon = Moon('Phi', 200000, 225000, 1000, 5000, 0, 45, base_planet)
+moon_2 = Moon('Tau', 250000, 226000, 1000, 5000, 0, 45, base_planet)
+moon_3 = Moon('Theta', 260000, 226000, 1000, 5000, 0, 40, base_planet)
 
 
 running = True
