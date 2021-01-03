@@ -423,8 +423,9 @@ class Moon(PhysicalObject, OrbitMarker, Planet):
 
 
 map_mode = False
-window_size = 2880 // 2, 1800 // 2
-screen = pygame.display.set_mode(window_size, pygame.FULLSCREEN)
+infoObject = pygame.display.Info()
+window_size = infoObject.current_w, infoObject.current_h
+screen = pygame.display.set_mode(window_size)
 screen.fill('black')
 
 
