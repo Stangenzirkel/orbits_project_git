@@ -30,7 +30,7 @@ screen.fill('black')
 
 interplanetary_map = InterplanetaryMap(window_size)
 
-star = StarOnMap(interplanetary_map, 'Star', 99)
+star = StarOnMap(interplanetary_map, 'HR 8799', 99)
 planet_1 = PlanetOnMap(interplanetary_map, 'Omicron', 1, 500, 20, star, apsis_argument=45)
 planet_2 = PlanetOnMap(interplanetary_map, 'Phi', 2, 500, 20, star, apsis_argument=0)
 planet_3 = PlanetOnMap(interplanetary_map, 'Theta', 3, 100, 90, star, apsis_argument=0)
