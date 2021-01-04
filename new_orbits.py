@@ -34,7 +34,6 @@ def load_image(name, color_key=None):
 
     return image
 
-
 class Interface:
     def __init__(self, surface):
         self.interface_surface = pygame.Surface(surface.get_size(), pygame.SRCALPHA, 32)
