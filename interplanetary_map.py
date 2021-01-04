@@ -1,29 +1,11 @@
-import os
 import pygame
-import random
 import math
+import os
 import copy
 
-pygame.init()
-pygame.mouse.set_visible(False)
-
 MAP_GRAVITY = 6.67
-FPS = 60
 MAP_GAME_SPEED = 1
-
-
-def load_image(name, color_key=None):
-    fullname = os.path.join('data', name)
-    image = pygame.image.load(fullname).convert()
-
-    if color_key is not None:
-        if color_key == -1:
-            color_key = image.get_at((0, 0))
-        image.set_colorkey(color_key)
-    else:
-        image = image.convert_alpha()
-
-    return image
+FPS = 60
 
 
 class InterplanetaryMap:
@@ -142,7 +124,6 @@ class PhysicalObjectOnMap:
         distanse = ((self.orbit_parent.x - self.x) ** 2 + (self.orbit_parent.y - self.y) ** 2) ** 0.5
         speed = (self.speed_x ** 2 + self.speed_y ** 2) ** 0.5
 
-        print(self.orbit_parent.x, self.orbit_parent.y, self.x, self.y)
         a = 1 / (2 / distanse - speed ** 2 / (MAP_GRAVITY * self.orbit_parent.mass))
         e = (a - distanse) / a
         b = a * (1 - e ** 2) ** 0.5
@@ -244,20 +225,34 @@ class HeroOnMap:
         self.planet = start_planet
         self.in_travel = False
         self.map = map
-        interplanetary_map.hero = self
+        self.map.hero = self
         self.particles = []
         self.particle_counter = 0
+
+        self.angle_for_render = 0
 
     def render(self):
         for particle in self.particles:
             pygame.draw.rect(self.map.map_surface, 'green', particle)
 
         if self.in_travel:
-            pygame.draw.circle(self.map.map_surface, 'green', (self.x, self.y), 5)
+            pygame.draw.circle(self.map.map_surface, 'green', (self.x, self.y), 3)
+
+        else:
+            pygame.draw.circle(self.map.map_surface, 'green',
+                               (self.planet.x +
+                                math.cos(math.radians(self.angle_for_render)) * (self.planet.radius + 10),
+                                self.planet.y +
+                                math.sin(math.radians(self.angle_for_render)) * (self.planet.radius + 10)), 3)
+
+            self.angle_for_render += 180 * MAP_GAME_SPEED / FPS
 
     def launch(self, target):
         if not self.in_travel:
-            self.x, self.y = self.planet.x, self.planet.y
+            self.x, self.y = (self.planet.x +
+                                math.cos(math.radians(self.angle_for_render)) * (self.planet.radius + 10),
+                                self.planet.y +
+                                math.sin(math.radians(self.angle_for_render)) * (self.planet.radius + 10))
 
             self.planet = target
             self.in_travel = True
@@ -272,6 +267,13 @@ class HeroOnMap:
 
         if distanse < self.planet.radius + 10:
             self.in_travel = False
+            print(delta_x, delta_y)
+            self.angle_for_render = math.degrees(math.atan(delta_y / delta_x))
+
+            if delta_x < 0:
+                self.angle_for_render += 180
+
+            print(self.angle_for_render)
 
         else:
             if type(self.planet) == PlanetOnMap:
@@ -283,51 +285,6 @@ class HeroOnMap:
             self.x += delta_x * -a / ((delta_x ** 2 + delta_y ** 2) ** 0.5)
             self.y += delta_y * -a / ((delta_x ** 2 + delta_y ** 2) ** 0.5)
 
-            self.particle_counter = (self.particle_counter + 1) % (10 / MAP_GAME_SPEED)
+            self.particle_counter = (self.particle_counter + 1) % (10 // a)
             if not self.particle_counter:
                 self.particles.append((self.x - 1, self.y - 1, 2, 2))
-
-
-# все что дальше для теста
-
-
-infoObject = pygame.display.Info()
-window_size = (infoObject.current_w, infoObject.current_h)
-screen = pygame.display.set_mode(window_size, pygame.FULLSCREEN)
-screen.fill('black')
-
-interplanetary_map = InterplanetaryMap(window_size)
-
-star = StarOnMap(interplanetary_map, 'Star', 99)
-planet_1 = PlanetOnMap(interplanetary_map, 'Omicron', 1, 500, 20, star, apsis_argument=45)
-planet_2 = PlanetOnMap(interplanetary_map, 'Phi', 2, 500, 20, star, apsis_argument=0)
-planet_3 = PlanetOnMap(interplanetary_map, 'Theta', 3, 100, 90, star, apsis_argument=0)
-planet_3 = PlanetOnMap(interplanetary_map, 'Tau', 4, 700, 20, star, apsis_argument=180)
-
-hero = HeroOnMap(interplanetary_map, star)
-
-all_sprites = pygame.sprite.Group()
-pygame.mouse.set_visible(False)
-
-running = True
-clock = pygame.time.Clock()
-
-REDRAW_EVENT = pygame.USEREVENT + 1
-pygame.time.set_timer(REDRAW_EVENT, 1000 // FPS)
-
-while running:
-    clock.tick(FPS)
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            running = False
-
-        if event.type == REDRAW_EVENT:
-            screen.fill('black')
-            interplanetary_map.update()
-            screen.blit(interplanetary_map.surface(), (0, 0))
-
-        elif event.type == pygame.MOUSEBUTTONDOWN and event.button == pygame.BUTTON_LEFT:
-            interplanetary_map.click_object(event.pos)
-
-    pygame.display.flip()
-pygame.quit()

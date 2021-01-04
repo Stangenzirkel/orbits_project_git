@@ -1,20 +1,12 @@
 import os
 import pygame
-import random
-import math
-import copy
-from planetary_system import PhysicalObject, Spaceship, Planet, Moon, PlanetarySystem
+from planetary_system import PhysicalObject, Spaceship, Planet, Moon, PlanetarySystem, GAME_SPEED
 from interplanetary_map import InterplanetaryMap, PhysicalObjectOnMap, HeroOnMap, StarOnMap, PlanetOnMap
+
+FPS = 60
 
 pygame.init()
 pygame.mouse.set_visible(False)
-
-GRAVITY = 100
-FPS = 60
-GAME_SPEED = 1
-
-MAP_GRAVITY = 6.67
-MAP_GAME_SPEED = 1
 
 
 def load_image(name, color_key=None):
@@ -50,7 +42,7 @@ system_star = PlanetarySystem(99, window_size, 6000, 100000)
 system_1 = PlanetarySystem(1, window_size, 6000, 100000, color='blue')
 system_2 = PlanetarySystem(2, window_size, 6000, 100000, color='green')
 system_3 = PlanetarySystem(3, window_size, 6000, 100000, color='red')
-system_4 = PlanetarySystem(4, window_size, 6000, 100000, color='pink')
+system_4 = PlanetarySystem(4, window_size, 6000, 100000, color='yellow')
 
 systems = dict()
 for system in [system_star, system_1, system_2, system_3, system_4]:
@@ -89,7 +81,7 @@ while running:
         elif event.type == pygame.KEYDOWN and event.key == pygame.K_LEFTBRACKET and GAME_SPEED > 1:
             GAME_SPEED //= 5
 
-        elif event.type == pygame.KEYDOWN and event.key == pygame.K_m:
+        elif event.type == pygame.KEYDOWN and event.key == pygame.K_m and not interplanetary_map.hero.in_travel:
             map_mode = not map_mode
 
         elif event.type == pygame.MOUSEBUTTONDOWN and event.button == pygame.BUTTON_LEFT and map_mode:

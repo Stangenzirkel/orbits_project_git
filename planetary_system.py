@@ -1,25 +1,11 @@
-import os
 import pygame
-import random
 import math
-import copy
-print('ok')
-
-pygame.init()
-pygame.mouse.set_visible(False)
+import os
+import random
 
 GRAVITY = 100
 FPS = 60
 GAME_SPEED = 1
-
-"""
-УПРАВЛЕНИЕ
-карта - M
-повороты - стрелки
-двигатель - пробел
-время +/- - [/]
-"""
-
 
 def load_image(name, color_key=None):
     fullname = os.path.join('data', name)
@@ -245,40 +231,3 @@ class Moon(Planet, PhysicalObject):
         self.physical_move(planets=[objects[0]])
         self.rect.x, self.rect.y = self.x - hero.x - self.radius + surface.get_width() // 2, \
                                    self.y - hero.y - self.radius + surface.get_height() // 2
-
-
-
-infoObject = pygame.display.Info()
-window_size = (infoObject.current_w, infoObject.current_h)
-screen = pygame.display.set_mode(window_size, pygame.FULLSCREEN)
-screen.fill('black')
-
-system_1 = PlanetarySystem(1, window_size, 6000, 100000)
-
-
-running = True
-clock = pygame.time.Clock()
-
-REDRAW_EVENT = pygame.USEREVENT + 1
-pygame.time.set_timer(REDRAW_EVENT, 10)
-
-while running:
-    clock.tick(FPS)
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            running = False
-
-        if event.type == REDRAW_EVENT:
-            screen.fill('black')
-            system_1.update()
-            screen.blit(system_1.surface, (0, 0))
-
-        # control
-        elif event.type == pygame.KEYDOWN and event.key == pygame.K_RIGHTBRACKET and GAME_SPEED < 5 ** 5:
-            GAME_SPEED *= 5
-
-        elif event.type == pygame.KEYDOWN and event.key == pygame.K_LEFTBRACKET and GAME_SPEED > 1:
-            GAME_SPEED //= 5
-
-    pygame.display.flip()
-pygame.quit()
