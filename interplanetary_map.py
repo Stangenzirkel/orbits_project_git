@@ -7,18 +7,9 @@ import copy
 pygame.init()
 pygame.mouse.set_visible(False)
 
-GRAVITY = 6.67
+MAP_GRAVITY = 6.67
 FPS = 60
-GAME_SPEED = 1
-MAP_VIEW_SIZE = 250
-
-"""
-УПРАВЛЕНИЕ
-карта - M
-повороты - стрелки
-двигатель - пробел
-время +/- - [/]
-"""
+MAP_GAME_SPEED = 1
 
 
 def load_image(name, color_key=None):
@@ -42,6 +33,7 @@ class InterplanetaryMap:
         self.labels = dict()
         self.font = pygame.font.SysFont(None, 20)
         self.objects = []
+        self.hero = None
 
     def draw_cursor(self, rect_size=10):
         pygame.draw.rect(self.map_surface, 'green', (pygame.mouse.get_pos()[0] - rect_size // 2,
@@ -83,13 +75,17 @@ class InterplanetaryMap:
         self.map_surface = copy.copy(self.background_surface)
         self.draw_cursor()
 
+        if self.hero.in_travel:
+            self.hero.move()
+
         for object in self.objects:
             object.update()
             object.render()
 
-        self.draw_label()
+        if self.hero:
+           self.hero.render()
 
-        return self.map_surface
+        self.draw_label()
 
     def draw_label(self):
         for key in self.labels.keys():
@@ -111,11 +107,12 @@ class InterplanetaryMap:
     def click_object(self, pos):
         for object in self.objects:
             if ((pos[0] - object.x) ** 2 + (pos[1] - object.y) ** 2) ** 0.5 <= object.radius + 5:
-                return object
+                self.hero.launch(object)
 
         return None
 
 
+# отвечает за движение планет по карте и рисование эллипсов
 class PhysicalObjectOnMap:
     def __init__(self, orbit_parent, x, y, speed_x, speed_y, apsis_argument):
         self.x = x
@@ -131,21 +128,22 @@ class PhysicalObjectOnMap:
     def physical_move(self):
         delta_x = self.x - self.orbit_parent.x
         delta_y = self.y - self.orbit_parent.y
-        a = self.orbit_parent.mass * GRAVITY / (delta_x ** 2 + delta_y ** 2)
+        a = self.orbit_parent.mass * MAP_GRAVITY / (delta_x ** 2 + delta_y ** 2)
         a_x = delta_x * -a / ((delta_x ** 2 + delta_y ** 2) ** 0.5)
         a_y = delta_y * -a / ((delta_x ** 2 + delta_y ** 2) ** 0.5)
 
-        self.speed_x += a_x * GAME_SPEED / FPS
-        self.speed_y += a_y * GAME_SPEED / FPS
+        self.speed_x += a_x * MAP_GAME_SPEED / FPS
+        self.speed_y += a_y * MAP_GAME_SPEED / FPS
 
-        self.x += self.speed_x * GAME_SPEED / FPS
-        self.y += self.speed_y * GAME_SPEED / FPS
+        self.x += self.speed_x * MAP_GAME_SPEED / FPS
+        self.y += self.speed_y * MAP_GAME_SPEED / FPS
 
     def draw_ellipse(self):
         distanse = ((self.orbit_parent.x - self.x) ** 2 + (self.orbit_parent.y - self.y) ** 2) ** 0.5
         speed = (self.speed_x ** 2 + self.speed_y ** 2) ** 0.5
 
-        a = 1 / (2 / distanse - speed ** 2 / (GRAVITY * self.orbit_parent.mass))
+        print(self.orbit_parent.x, self.orbit_parent.y, self.x, self.y)
+        a = 1 / (2 / distanse - speed ** 2 / (MAP_GRAVITY * self.orbit_parent.mass))
         e = (a - distanse) / a
         b = a * (1 - e ** 2) ** 0.5
 
@@ -188,6 +186,7 @@ class PhysicalObjectOnMap:
         return image, origin_x, origin_y
 
 
+# создает звезду - центр системы
 class StarOnMap:
     def __init__(self, map, name, id, mass=100000, radius=20):
         self.map = map
@@ -195,10 +194,10 @@ class StarOnMap:
         self.id = id
         self.mass = mass
         self.radius = radius
-        self.x, self.y = self.start_position()
+        self.x, self.y = self.start_position_calculation()
         self.map.objects.append(self)
 
-    def start_position(self):
+    def start_position_calculation(self):
         return self.map.map_surface.get_rect().center
 
     def render(self):
@@ -211,20 +210,23 @@ class StarOnMap:
         return self.x, self.y
 
 
+# создет планету которая движется вокруг звезды родителя
+# при нажатии на карте класс карты возвращает этот объект
+# можно получить id уровня на этой планете уровня на этой планете
 class PlanetOnMap(StarOnMap, PhysicalObjectOnMap):
-    def __init__(self, map, name, id, start_height, speed, orbital_parent, apsis_argument=0, mass=0, radius=5):
+    def __init__(self, map, name, id, start_height, start_speed, orbital_parent, apsis_argument=0, mass=0, radius=5):
         self.start_height = start_height
-        self.speed = speed
+        self.start_speed = start_speed
         self.apsis_argument = apsis_argument
         self.orbital_parent = orbital_parent
 
         StarOnMap.__init__(self, map, name, id, mass=mass, radius=radius)
-        PhysicalObjectOnMap.__init__(self, self.orbital_parent, self.x, self.y, *self.start_speed(), apsis_argument)
+        PhysicalObjectOnMap.__init__(self, self.orbital_parent, self.x, self.y, *self.start_speed_calculation(), apsis_argument)
 
         ellipse_surface, ellipse_surface_coords_delta = self.draw_ellipse()
         self.map.background_surface.blit(ellipse_surface, ellipse_surface_coords_delta)
 
-    def start_position(self):
+    def start_position_calculation(self):
         return self.start_height * math.cos(math.radians(self.apsis_argument)) + self.orbital_parent.x, \
                self.start_height * math.sin(math.radians(self.apsis_argument)) + self.orbital_parent.y
 
@@ -232,9 +234,61 @@ class PlanetOnMap(StarOnMap, PhysicalObjectOnMap):
         self.physical_move()
         self.map.add_text_to_label(self, self.name, 'x: ' + str(int(self.x)), 'y: ' + str(int(self.y)))
 
-    def start_speed(self):
-        return self.speed * math.cos(math.radians(self.apsis_argument + 90)), \
-               self.speed * math.sin(math.radians(self.apsis_argument + 90))
+    def start_speed_calculation(self):
+        return self.start_speed * math.cos(math.radians(self.apsis_argument + 90)), \
+               self.start_speed * math.sin(math.radians(self.apsis_argument + 90))
+
+
+class HeroOnMap:
+    def __init__(self, map, start_planet):
+        self.planet = start_planet
+        self.in_travel = False
+        self.map = map
+        interplanetary_map.hero = self
+        self.particles = []
+        self.particle_counter = 0
+
+    def render(self):
+        for particle in self.particles:
+            pygame.draw.rect(self.map.map_surface, 'green', particle)
+
+        if self.in_travel:
+            pygame.draw.circle(self.map.map_surface, 'green', (self.x, self.y), 5)
+
+    def launch(self, target):
+        if not self.in_travel:
+            self.x, self.y = self.planet.x, self.planet.y
+
+            self.planet = target
+            self.in_travel = True
+
+            self.particles = []
+            self.particle_counter = 0
+
+    def move(self):
+        delta_x = self.x - self.planet.x
+        delta_y = self.y - self.planet.y
+        distanse = (delta_x ** 2 + delta_y ** 2) ** 0.5
+
+        if distanse < self.planet.radius + 10:
+            self.in_travel = False
+
+        else:
+            if type(self.planet) == PlanetOnMap:
+                a = (self.planet.speed_x ** 2 + self.planet.speed_y ** 2) ** 0.5 * 1.5 * MAP_GAME_SPEED / FPS
+
+            else:
+                a = 60 * MAP_GAME_SPEED / FPS
+
+            self.x += delta_x * -a / ((delta_x ** 2 + delta_y ** 2) ** 0.5)
+            self.y += delta_y * -a / ((delta_x ** 2 + delta_y ** 2) ** 0.5)
+
+            self.particle_counter = (self.particle_counter + 1) % (10 / MAP_GAME_SPEED)
+            if not self.particle_counter:
+                self.particles.append((self.x - 1, self.y - 1, 2, 2))
+
+
+# все что дальше для теста
 
 
 infoObject = pygame.display.Info()
@@ -244,10 +298,13 @@ screen.fill('black')
 
 interplanetary_map = InterplanetaryMap(window_size)
 
-star = StarOnMap(interplanetary_map, 'star', 99)
-planet_1 = PlanetOnMap(interplanetary_map, 'planet', 1, 500, 20, star, apsis_argument=45)
-planet_2 = PlanetOnMap(interplanetary_map, 'planet', 2, 500, 20, star, apsis_argument=0)
-planet_3 = PlanetOnMap(interplanetary_map, 'planet', 3, 100, 90, star, apsis_argument=0)
+star = StarOnMap(interplanetary_map, 'Star', 99)
+planet_1 = PlanetOnMap(interplanetary_map, 'Omicron', 1, 500, 20, star, apsis_argument=45)
+planet_2 = PlanetOnMap(interplanetary_map, 'Phi', 2, 500, 20, star, apsis_argument=0)
+planet_3 = PlanetOnMap(interplanetary_map, 'Theta', 3, 100, 90, star, apsis_argument=0)
+planet_3 = PlanetOnMap(interplanetary_map, 'Tau', 4, 700, 20, star, apsis_argument=180)
+
+hero = HeroOnMap(interplanetary_map, star)
 
 all_sprites = pygame.sprite.Group()
 pygame.mouse.set_visible(False)
@@ -270,8 +327,7 @@ while running:
             screen.blit(interplanetary_map.surface(), (0, 0))
 
         elif event.type == pygame.MOUSEBUTTONDOWN and event.button == pygame.BUTTON_LEFT:
-            object = interplanetary_map.click_object(event.pos)
-            print(object.name, object.id)
+            interplanetary_map.click_object(event.pos)
 
     pygame.display.flip()
 pygame.quit()
