@@ -1,11 +1,13 @@
 import pygame
 import math
 import os
+import copy
 import random
 
 GRAVITY = 100
 FPS = 60
-GAME_SPEED = 1
+MAP_SIZE = 100
+
 
 def load_image(name, color_key=None):
     fullname = os.path.join('data', name)
@@ -22,26 +24,97 @@ def load_image(name, color_key=None):
 
 
 class PlanetarySystem:
-    def __init__(self, id, size, planet_radius, planet_mass, color='white'):
+    def __init__(self, id, size):
+        self.font = pygame.font.SysFont(None, 20)
+        self.game_speed = 1
         self.id = id
         self.surface = pygame.Surface(size)
-        self.all_sprites = pygame.sprite.Group()
+
+        self.all_view_sprites = pygame.sprite.Group()
+        self.map_mode = False
         pygame.mouse.set_visible(False)
 
-        self.hero = Spaceship(self.all_sprites, '--Name--', 6570, 0, angle=0, speed_x=0, speed_y=310)
-        self.base_planet = Planet(self.all_sprites, 0, 0, planet_radius, planet_mass, color=color)
-        self.objects = [self.base_planet]
+        self.hero = None
+        self.objects = []
 
-        self.load_file(None)
+        self.background = self.draw_background()
 
     def update(self):
         self.surface.fill('black')
-        self.all_sprites.update(self.surface, self.objects, self.hero)
-        self.all_sprites.draw(self.surface)
+        if self.hero.destroyed:
+            self.surface.blit(self.background, (0, 0))
+            self.surface.blit(self.font.render('no signal', True, 'green'), (20, 20))
+            self.surface.blit(self.font.render('transmitter not responding', True, 'green'), (20, 45))
+            self.surface.blit(self.font.render('reboot failed', True, 'green'), (20, 70))
+            self.draw_cursor()
 
-    def load_file(self, filename):
-        # пока вместо этого просто создаем все вручную
-        self.objects.append(Moon(self.all_sprites, 6420, 0, 0, 310, 100, 0))
+            return None
+
+        if self.map_mode:
+            self.surface.blit(self.background, (0, 0))
+
+        self.all_view_sprites.update(self.surface, self.objects, self.hero, self.game_speed, self.map_mode)
+        self.all_view_sprites.draw(self.surface)
+
+        if self.map_mode:
+            self.surface.blit(self.font.render('MAP mode', True, 'green'), (20, 20))
+            self.draw_cursor()
+
+    def load_object(self, line):
+        line = line.split(', ')
+        if line[0] == 'planet':
+            self.objects.append(Planet(self.all_view_sprites,
+                                       int(line[1]),
+                                       int(line[2]),
+                                       int(line[3]),
+                                       int(line[4]),
+                                       color=line[5]))
+
+        elif line[0] == 'moon':
+            self.objects.append(Moon(self.all_view_sprites,
+                                     int(line[1]),
+                                     int(line[2]),
+                                     float(line[5]),
+                                     float(line[6]),
+                                     int(line[3]),
+                                     int(line[4]),
+                                     color=line[7]))
+
+    def draw_cursor(self, rect_size=10):
+        pygame.draw.rect(self.surface, 'green', (pygame.mouse.get_pos()[0] - rect_size // 2,
+                                                     pygame.mouse.get_pos()[1] - rect_size // 2,
+                                                     rect_size, rect_size), 1)
+
+        pygame.draw.line(self.surface, 'green', (0, pygame.mouse.get_pos()[1]),
+                         (pygame.mouse.get_pos()[0] - rect_size // 2, pygame.mouse.get_pos()[1]))
+
+        pygame.draw.line(self.surface, 'green', (self.surface.get_size()[0],
+                                                     pygame.mouse.get_pos()[1]),
+                         (pygame.mouse.get_pos()[0] + rect_size // 2, pygame.mouse.get_pos()[1]))
+
+        pygame.draw.line(self.surface, 'green', (pygame.mouse.get_pos()[0], 0),
+                         (pygame.mouse.get_pos()[0], pygame.mouse.get_pos()[1] - rect_size // 2))
+
+        pygame.draw.line(self.surface, 'green',
+                         (pygame.mouse.get_pos()[0], self.surface.get_size()[1]),
+                         (pygame.mouse.get_pos()[0], pygame.mouse.get_pos()[1] + rect_size // 2))
+
+    def draw_background(self):
+        grid_surface = pygame.Surface(self.surface.get_size(), pygame.SRCALPHA, 32)
+        grid_surface.fill((0, 0, 0, 0))
+        for i in range(1, 160):
+            pygame.draw.line(grid_surface, (0, 15, 0), (i * 9, 0), (i * 9, self.surface.get_height()))
+
+        for i in range(1, 100):
+            pygame.draw.line(grid_surface, (0, 15, 0), (0, i * 9), (self.surface.get_width(), i * 9))
+
+        for i in range(1, 16):
+            pygame.draw.line(grid_surface, (0, 35, 0), (i * 90, 0), (i * 90, self.surface.get_height()))
+
+        for i in range(1, 10):
+            pygame.draw.line(grid_surface, (0, 35, 0), (0, i * 90), (self.surface.get_width(), i * 90))
+
+        return grid_surface
 
 
 class PhysicalObject:
@@ -54,7 +127,7 @@ class PhysicalObject:
         self.speed_x = speed_x
         self.speed_y = speed_y
 
-    def physical_move(self, a_x=0, a_y=0, planets=[]):
+    def physical_move(self, game_speed, a_x=0, a_y=0, planets=[]):
         for planet in planets:
             if planet.mass == 0:
                 continue
@@ -65,11 +138,11 @@ class PhysicalObject:
             a_x += delta_x * -a / ((delta_x ** 2 + delta_y ** 2) ** 0.5)
             a_y += delta_y * -a / ((delta_x ** 2 + delta_y ** 2) ** 0.5)
 
-        self.speed_x += a_x * GAME_SPEED
-        self.speed_y += a_y * GAME_SPEED
+        self.speed_x += a_x * game_speed
+        self.speed_y += a_y * game_speed
 
-        self.x += self.speed_x / FPS * GAME_SPEED
-        self.y += self.speed_y / FPS * GAME_SPEED
+        self.x += self.speed_x / FPS * game_speed
+        self.y += self.speed_y / FPS * game_speed
 
 
 class EngineObject:
@@ -90,8 +163,8 @@ class EngineObject:
         self.engine_particles = []
         self.engine_particles_counter = 0
 
-    def engine_on(self):
-        if GAME_SPEED != 1:
+    def engine_on(self, game_speed):
+        if game_speed != 1:
             return 0, 0
 
         if self.engine_particles_counter == 0:
@@ -123,7 +196,7 @@ class EngineObject:
 
 
 class Spaceship(pygame.sprite.Sprite, PhysicalObject, EngineObject):
-    def __init__(self, group, name, x, y, angle=0, speed_x=0, speed_y=0, rotation_speed=1, collision_radius=0.75):
+    def __init__(self, group, name, x, y, angle=0, speed_x=0, speed_y=0, rotation_speed=1, collision_radius=10):
         pygame.sprite.Sprite.__init__(self, group)
         PhysicalObject.__init__(self, x, y, speed_x=speed_x, speed_y=speed_y)
         EngineObject.__init__(self, angle, begin_color=(0, 255, 250))
@@ -131,6 +204,9 @@ class Spaceship(pygame.sprite.Sprite, PhysicalObject, EngineObject):
         self.name = name
         self.or_image = load_image("spaceship.png", -1)
         self.or_image = pygame.transform.scale(self.or_image, (40, 40))
+
+        self.or_map_image = load_image("spaceship_on_map.png", -1)
+        self.or_map_image = pygame.transform.scale(self.or_map_image, (20, 20))
 
         self.rect = self.or_image.get_rect()
         self.image = self.or_image
@@ -140,7 +216,7 @@ class Spaceship(pygame.sprite.Sprite, PhysicalObject, EngineObject):
         self.collision_radius = collision_radius
         self.destroyed = None
 
-    def update(self, surface, objects, hero):
+    def update(self, surface, objects, hero, game_speed, map_mode):
         if not self.destroyed:
             a_x = 0
             a_y = 0
@@ -148,7 +224,7 @@ class Spaceship(pygame.sprite.Sprite, PhysicalObject, EngineObject):
             keys = pygame.key.get_pressed()
 
             if keys[pygame.K_SPACE]:
-                a_x, a_y = self.engine_on()
+                a_x, a_y = self.engine_on(game_speed)
 
             if keys[pygame.K_RIGHT]:
                 self.angle = (self.angle + self.rotation_speed) % 360
@@ -156,7 +232,7 @@ class Spaceship(pygame.sprite.Sprite, PhysicalObject, EngineObject):
             if keys[pygame.K_LEFT]:
                 self.angle = (self.angle - self.rotation_speed) % 360
 
-            self.physical_move(a_x=a_x, a_y=a_y, planets=objects)
+            self.physical_move(game_speed, a_x=a_x, a_y=a_y, planets=objects)
 
             for object in objects:
                 if type(object) == Planet or type(object) == Moon:
@@ -166,8 +242,21 @@ class Spaceship(pygame.sprite.Sprite, PhysicalObject, EngineObject):
             self.x = self.destroyed[0].x + self.destroyed[1]
             self.y = self.destroyed[0].y + self.destroyed[2]
 
-        self.rect.x, self.rect.y = self.blitRotate((surface.get_width() // 2, surface.get_height() // 2), (20, 20), self.angle, self.or_image)
+        if not map_mode:
+            self.render_on_view(surface)
+
+        else:
+            self.render_on_map(surface)
+
+    def render_on_view(self, surface):
+        self.rect.x, self.rect.y = self.blitRotate((surface.get_width() // 2, surface.get_height() // 2), (20, 20),
+                                                   self.angle, self.or_image)
         self.update_and_render_engine_particles(surface)
+
+    def render_on_map(self, surface):
+        self.rect.x, self.rect.y = self.blitRotate((surface.get_width() // 2 + self.x / MAP_SIZE,
+                                                    surface.get_height() // 2 + self.y / MAP_SIZE),
+                                                   (10, 10), self.angle + 45, self.or_map_image)
 
     # ЭТУ ФУНКЦИЮ Я ЧЕСТНОГО УКРАЛ
     def blitRotate(self, pos, originPos, angle, image):
@@ -194,7 +283,7 @@ class Spaceship(pygame.sprite.Sprite, PhysicalObject, EngineObject):
         return origin
 
     def collision_with_planet(self, planet):
-        global GAME_SPEED
+        global game_speed
         delta_x = self.x - planet.x
         delta_y = self.y - planet.y
         distanse = (delta_x ** 2 + delta_y ** 2) ** 0.5
@@ -211,15 +300,39 @@ class Planet(pygame.sprite.Sprite):
         self.radius = radius
         self.mass = mass
         self.color = color
-        self.image = pygame.surface.Surface((radius * 2, radius * 2), pygame.SRCALPHA)
-        self.image.fill((0, 0, 0, 0))
-        pygame.draw.circle(self.image, self.color, (self.radius, self.radius), self.radius, 0)
+
+        self.or_map_image = pygame.surface.Surface((radius * 2 // MAP_SIZE, radius * 2 // MAP_SIZE), pygame.SRCALPHA)
+        self.or_map_image.fill((0, 0, 0, 0))
+        pygame.draw.circle(self.or_map_image, 'green',
+                           (radius // MAP_SIZE, radius // MAP_SIZE),
+                           radius // MAP_SIZE, 1)
+
+        self.or_image = pygame.surface.Surface((radius * 2, radius * 2), pygame.SRCALPHA)
+        self.or_image.fill((0, 0, 0, 0))
+        pygame.draw.circle(self.or_image, self.color,
+                           (self.radius, self.radius),
+                           self.radius, 0)
+
+        self.image = self.or_image
 
         self.rect = self.image.get_rect()
 
-    def update(self, surface, objects, hero):
+    def update(self, surface, objects, hero, game_speed, map_mode):
+        if not map_mode:
+            self.render_on_view(surface, hero)
+
+        else:
+            self.render_on_map(surface)
+
+    def render_on_view(self, surface, hero):
+        self.image = self.or_image
         self.rect.x, self.rect.y = self.x - hero.x - self.radius + surface.get_width() // 2, \
                                    self.y - hero.y - self.radius + surface.get_height() // 2
+
+    def render_on_map(self, surface):
+        self.image = self.or_map_image
+        self.rect.x, self.rect.y = surface.get_width() // 2 + (self.x - self.radius) / MAP_SIZE, \
+                                   surface.get_height() // 2 + (self.y - self.radius) / MAP_SIZE
 
 
 class Moon(Planet, PhysicalObject):
@@ -227,7 +340,11 @@ class Moon(Planet, PhysicalObject):
         Planet.__init__(self, group, x, y, radius, mass, color=color)
         PhysicalObject.__init__(self, x, y, speed_x, speed_y)
 
-    def update(self, surface, objects, hero):
-        self.physical_move(planets=[objects[0]])
-        self.rect.x, self.rect.y = self.x - hero.x - self.radius + surface.get_width() // 2, \
-                                   self.y - hero.y - self.radius + surface.get_height() // 2
+    def update(self, surface, objects, hero, game_speed, map_mode):
+        self.physical_move(game_speed, planets=[objects[0]])
+
+        if not map_mode:
+            self.render_on_view(surface, hero)
+
+        else:
+            self.render_on_map(surface)

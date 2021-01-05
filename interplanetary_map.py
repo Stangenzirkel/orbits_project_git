@@ -1,6 +1,5 @@
 import pygame
 import math
-import os
 import copy
 
 MAP_GRAVITY = 6.67
@@ -55,6 +54,16 @@ class InterplanetaryMap:
 
     def update(self):
         self.map_surface = copy.copy(self.background_surface)
+        self.map_surface.blit(self.font.render('NAVCOM power ON', True, 'green'), (20, 20))
+
+        if self.hero.in_travel:
+            self.map_surface.blit(self.font.render('ENGINE power ON', True, 'green'), (20, 45))
+            self.map_surface.blit(self.font.render('hibernation mode ON', True, 'green'), (20, 70))
+
+        else:
+            self.map_surface.blit(self.font.render('ENGINE power OFF', True, 'green'), (20, 45))
+            self.map_surface.blit(self.font.render('hibernation mode OFF', True, 'green'), (20, 70))
+
         self.draw_cursor()
 
         if self.hero.in_travel:
@@ -169,10 +178,9 @@ class PhysicalObjectOnMap:
 
 # создает звезду - центр системы
 class StarOnMap:
-    def __init__(self, map, name, id, mass=100000, radius=20):
+    def __init__(self, map, name, mass=100000, radius=20):
         self.map = map
         self.name = name
-        self.id = id
         self.mass = mass
         self.radius = radius
         self.x, self.y = self.start_position_calculation()
@@ -195,13 +203,15 @@ class StarOnMap:
 # при нажатии на карте класс карты возвращает этот объект
 # можно получить id уровня на этой планете уровня на этой планете
 class PlanetOnMap(StarOnMap, PhysicalObjectOnMap):
-    def __init__(self, map, name, id, start_height, start_speed, orbital_parent, apsis_argument=0, mass=0, radius=5):
+    def __init__(self, map, name, id, start_height, start_speed, orbital_parent, apsis_argument, radius=5, mass=0):
+        self.id = id
+
         self.start_height = start_height
         self.start_speed = start_speed
         self.apsis_argument = apsis_argument
         self.orbital_parent = orbital_parent
 
-        StarOnMap.__init__(self, map, name, id, mass=mass, radius=radius)
+        StarOnMap.__init__(self, map, name, mass=mass, radius=radius)
         PhysicalObjectOnMap.__init__(self, self.orbital_parent, self.x, self.y, *self.start_speed_calculation(), apsis_argument)
 
         ellipse_surface, ellipse_surface_coords_delta = self.draw_ellipse()
@@ -248,6 +258,9 @@ class HeroOnMap:
             self.angle_for_render += 180 * MAP_GAME_SPEED / FPS
 
     def launch(self, target):
+        if type(target) != PlanetOnMap:
+            return None
+
         if not self.in_travel:
             self.x, self.y = (self.planet.x +
                                 math.cos(math.radians(self.angle_for_render)) * (self.planet.radius + 10),
@@ -267,13 +280,10 @@ class HeroOnMap:
 
         if distanse < self.planet.radius + 10:
             self.in_travel = False
-            print(delta_x, delta_y)
             self.angle_for_render = math.degrees(math.atan(delta_y / delta_x))
 
             if delta_x < 0:
                 self.angle_for_render += 180
-
-            print(self.angle_for_render)
 
         else:
             if type(self.planet) == PlanetOnMap:

@@ -9,7 +9,7 @@ pygame.mouse.set_visible(False)
 
 GRAVITY = 50
 FPS = 60
-GAME_SPEED = 1
+game_speed = 1
 MAP_VIEW_SIZE = 250
 
 """
@@ -179,11 +179,11 @@ class PhysicalObject:
             a_x += delta_x * -a / ((delta_x ** 2 + delta_y ** 2) ** 0.5)
             a_y += delta_y * -a / ((delta_x ** 2 + delta_y ** 2) ** 0.5)
 
-        self.speed_x += a_x * GAME_SPEED
-        self.speed_y += a_y * GAME_SPEED
+        self.speed_x += a_x * game_speed
+        self.speed_y += a_y * game_speed
 
-        self.x += self.speed_x / FPS * GAME_SPEED
-        self.y += self.speed_y / FPS * GAME_SPEED
+        self.x += self.speed_x / FPS * game_speed
+        self.y += self.speed_y / FPS * game_speed
 
     def calclulate_orbit_ellipse_semi_axis(self):
         distanse = ((self.orbit_parent.x - self.x) ** 2 + (self.orbit_parent.y - self.y) ** 2) ** 0.5
@@ -252,7 +252,7 @@ class EngineObject:
         self.engine_particles_counter = 0
 
     def engine_on(self):
-        if GAME_SPEED != 1:
+        if game_speed != 1:
             return 0, 0
 
         if self.engine_particles_counter == 0:
@@ -367,7 +367,7 @@ class Spaceship(pygame.sprite.Sprite, PhysicalObject, EngineObject, OrbitMarker)
         return origin
 
     def collision_with_planet(self, planet):
-        global GAME_SPEED
+        global game_speed
         delta_x = self.x - planet.x
         delta_y = self.y - planet.y
         distanse = (delta_x ** 2 + delta_y ** 2) ** 0.5
@@ -500,11 +500,11 @@ while running:
         if event.type == pygame.KEYDOWN and event.key == pygame.K_m:
             map_mode = not map_mode
 
-        elif event.type == pygame.KEYDOWN and event.key == pygame.K_RIGHTBRACKET and GAME_SPEED < 5 ** 5:
-            GAME_SPEED *= 5
+        elif event.type == pygame.KEYDOWN and event.key == pygame.K_RIGHTBRACKET and game_speed < 5 ** 5:
+            game_speed *= 5
 
-        elif event.type == pygame.KEYDOWN and event.key == pygame.K_LEFTBRACKET and GAME_SPEED > 1:
-            GAME_SPEED //= 5
+        elif event.type == pygame.KEYDOWN and event.key == pygame.K_LEFTBRACKET and game_speed > 1:
+            game_speed //= 5
 
         elif event.type == pygame.MOUSEWHEEL:
             MAP_VIEW_SIZE -= event.y
