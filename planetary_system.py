@@ -58,8 +58,8 @@ class PlanetarySystem:
         else:
             self.draw_stars()
 
-        self.all_view_sprites.update(self.surface, self.objects, self.hero, self.game_speed, self.map_mode)
         self.all_view_sprites.draw(self.surface)
+        self.all_view_sprites.update(self.surface, self.objects, self.hero, self.game_speed, self.map_mode)
 
         if self.map_mode:
             self.surface.blit(self.font.render('MAP mode', True, 'green'), (20, 20))
@@ -131,8 +131,8 @@ class PlanetarySystem:
 
     def draw_stars(self):
         for star in self.stars:
-            star[0] -= self.hero.speed_x * star[2] / 100000 * self.game_speed
-            star[1] -= self.hero.speed_y * star[2] / 100000 * self.game_speed
+            star[0] -= self.hero.speed_x * star[2] / 50000 * self.game_speed
+            star[1] -= self.hero.speed_y * star[2] / 50000 * self.game_speed
 
             if - 10 > star[0]:
                 star[0] = self.surface.get_width()
@@ -377,10 +377,10 @@ class Moon(Planet, PhysicalObject):
         PhysicalObject.__init__(self, x, y, speed_x, speed_y)
 
     def update(self, surface, objects, hero, game_speed, map_mode):
-        self.physical_move(game_speed, planets=[objects[0]])
-
         if not map_mode:
             self.render_on_view(surface, hero)
 
         else:
             self.render_on_map(surface)
+
+        self.physical_move(game_speed, planets=[objects[0]])
