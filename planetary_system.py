@@ -38,6 +38,8 @@ class PlanetarySystem:
         self.objects = []
 
         self.background = self.draw_background()
+        self.stars = []
+        self.create_stars()
 
     def update(self):
         self.surface.fill('black')
@@ -52,6 +54,9 @@ class PlanetarySystem:
 
         if self.map_mode:
             self.surface.blit(self.background, (0, 0))
+
+        else:
+            self.draw_stars()
 
         self.all_view_sprites.update(self.surface, self.objects, self.hero, self.game_speed, self.map_mode)
         self.all_view_sprites.draw(self.surface)
@@ -115,6 +120,37 @@ class PlanetarySystem:
             pygame.draw.line(grid_surface, (0, 35, 0), (0, i * 90), (self.surface.get_width(), i * 90))
 
         return grid_surface
+
+    def create_stars(self):
+        for i in range(100):
+            x = random.randrange(0, self.surface.get_width())
+            y = random.randrange(0, self.surface.get_height())
+            luminosity = random.randrange(50, 255)
+            size = random.randrange(1, 3)
+            self.stars.append([x, y, luminosity, size])
+
+    def draw_stars(self):
+        for star in self.stars:
+            star[0] -= self.hero.speed_x * star[2] / 100000 * self.game_speed
+            star[1] -= self.hero.speed_y * star[2] / 100000 * self.game_speed
+
+            if - 10 > star[0]:
+                star[0] = self.surface.get_width()
+                star[1] = random.randrange(0, self.surface.get_height())
+
+            elif star[0] > self.surface.get_width() + 10:
+                star[0] = 0
+                star[1] = random.randrange(0, self.surface.get_height())
+
+            if - 10 > star[1]:
+                star[1] = self.surface.get_height()
+                star[0] = random.randrange(0, self.surface.get_width())
+
+            elif star[1] > self.surface.get_height() + 10:
+                star[1] = 0
+                star[0] = random.randrange(0, self.surface.get_width())
+
+            pygame.draw.circle(self.surface, (star[2], star[2], star[2]), (star[0], star[1]), star[3])
 
 
 class PhysicalObject:
