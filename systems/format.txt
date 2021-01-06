@@ -4,8 +4,8 @@ map_start_height, map_speed, map_apsis_argument, map_radius, map_mass
 hero_x, hero_y, hero_angle, hero_speed_x, hero_speed_y
 
 первым указать центральный объект
-type, x, y, radius, mass, (speed_x), (speed_y), color
+type, x, y, radius, mass, (speed_x), (speed_y), filename, atmosphere_height
 ...
 ...
 ...
-type, x, y, radius, mass, (speed_x), (speed_y), color
+type, x, y, radius, mass, (speed_x), (speed_y), filename, atmosphere_height

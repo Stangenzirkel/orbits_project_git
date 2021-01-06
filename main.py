@@ -45,8 +45,14 @@ def load_system(name):
     for line in file[4:len(file)]:
         system.load_object(line)
 
-    # hero_x, hero_y, hero_angle, hero_speed_x, hero_speed_y = tuple(file[3].split(', '))
-    system.hero = Spaceship(system.all_view_sprites, '--Name--', 6570, 0, angle=0, speed_x=0, speed_y=310)
+    hero_x, hero_y, hero_angle, hero_speed_x, hero_speed_y = tuple(file[3].split(', '))
+    system.hero = Spaceship(system.all_view_sprites,
+                            '--Name--',
+                            int(hero_x),
+                            int(hero_y),
+                            angle=int(hero_angle),
+                            speed_x=float(hero_speed_x),
+                            speed_y=float(hero_speed_y))
     systems[id] = system
 
 

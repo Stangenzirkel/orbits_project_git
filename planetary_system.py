@@ -73,7 +73,8 @@ class PlanetarySystem:
                                        int(line[2]),
                                        int(line[3]),
                                        int(line[4]),
-                                       color=line[5]))
+                                       str(line[5]),
+                                       int(line[6])))
 
         elif line[0] == 'moon':
             self.objects.append(Moon(self.all_view_sprites,
@@ -83,7 +84,8 @@ class PlanetarySystem:
                                      float(line[6]),
                                      int(line[3]),
                                      int(line[4]),
-                                     color=line[7]))
+                                     str(line[7]),
+                                     int(line[8])))
 
     def draw_cursor(self, rect_size=10):
         pygame.draw.rect(self.surface, 'green', (pygame.mouse.get_pos()[0] - rect_size // 2,
@@ -323,34 +325,28 @@ class Spaceship(pygame.sprite.Sprite, PhysicalObject, EngineObject):
         delta_x = self.x - planet.x
         delta_y = self.y - planet.y
         distanse = (delta_x ** 2 + delta_y ** 2) ** 0.5
-        if distanse < self.collision_radius + planet.radius:
+        if distanse < self.collision_radius + planet.radius - planet.atmosphere_height // 2:
             self.destroyed = planet, delta_x, delta_y
             self.marker_on = False
 
 
 class Planet(pygame.sprite.Sprite):
-    def __init__(self, group, x, y, radius, mass, color='white'):
+    def __init__(self, group, x, y, radius, mass, filename, atmosphere_height):
         pygame.sprite.Sprite.__init__(self, group)
         self.x = x
         self.y = y
         self.radius = radius
         self.mass = mass
-        self.color = color
+        self.atmosphere_height = atmosphere_height
 
-        self.or_map_image = pygame.surface.Surface((radius * 2 // MAP_SIZE, radius * 2 // MAP_SIZE), pygame.SRCALPHA)
+        self.or_map_image = pygame.surface.Surface((radius * 2 // MAP_SIZE, radius * 2 // MAP_SIZE), pygame.SRCALPHA, 32)
         self.or_map_image.fill((0, 0, 0, 0))
         pygame.draw.circle(self.or_map_image, 'green',
                            (radius // MAP_SIZE, radius // MAP_SIZE),
                            radius // MAP_SIZE, 1)
 
-        self.or_image = pygame.surface.Surface((radius * 2, radius * 2), pygame.SRCALPHA)
-        self.or_image.fill((0, 0, 0, 0))
-        pygame.draw.circle(self.or_image, self.color,
-                           (self.radius, self.radius),
-                           self.radius, 0)
-
+        self.or_image = self.draw_planet(filename, atmosphere_height)
         self.image = self.or_image
-
         self.rect = self.image.get_rect()
 
     def update(self, surface, objects, hero, game_speed, map_mode):
@@ -370,10 +366,27 @@ class Planet(pygame.sprite.Sprite):
         self.rect.x, self.rect.y = surface.get_width() // 2 + (self.x - self.radius) / MAP_SIZE, \
                                    surface.get_height() // 2 + (self.y - self.radius) / MAP_SIZE
 
+    def draw_planet(self, filename, atmosphere_height):
+        image = pygame.surface.Surface((self.radius * 2, self.radius * 2), pygame.SRCALPHA, 32)
+        image.fill((0, 0, 0, 0))
+        planet = load_image(filename, -1)
+        planet = pygame.transform.scale(planet, ((self.radius - atmosphere_height) * 2,
+                                                 (self.radius - atmosphere_height) * 2))
+
+        if atmosphere_height:
+            for h in range(0, atmosphere_height, 5):
+                pygame.draw.circle(image, (10, 50, 100, h * (255 // atmosphere_height)),
+                                   (self.radius, self.radius),
+                                   self.radius - h)
+
+        image.blit(planet, (atmosphere_height, atmosphere_height))
+        return image
+
+
 
 class Moon(Planet, PhysicalObject):
-    def __init__(self, group, x, y, speed_x, speed_y, radius, mass, color='white'):
-        Planet.__init__(self, group, x, y, radius, mass, color=color)
+    def __init__(self, group, x, y, speed_x, speed_y, radius, mass, filename, atmosphere_height):
+        Planet.__init__(self, group, x, y, radius, mass, filename, atmosphere_height)
         PhysicalObject.__init__(self, x, y, speed_x, speed_y)
 
     def update(self, surface, objects, hero, game_speed, map_mode):
