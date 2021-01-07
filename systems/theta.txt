@@ -3,5 +3,5 @@ Theta
 100, 90, 0, 5, 0
 6570, 0, 0, 0, 310
 
-planet, 0, 0, 6000, 100000, planet_1.jpg, 60
-moon, 6420, 0, 100, 0, 0, 310, planet_1.jpg, 0
+planet, 0, 0, 3000, 100000, planet_1.png, 60
+moon, 6420, 0, 100, 0, 0, 310, planet_1.png, 0
