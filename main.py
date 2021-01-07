@@ -26,7 +26,6 @@ def load_image(name, color_key=None):
 
 def load_system(name):
     fullname = os.path.join('systems', name)
-    print(fullname)
     file = open(fullname, 'r').read().split('\n')
     id = int(file[0])
     system_name = file[1]
@@ -58,7 +57,7 @@ def load_system(name):
 
 infoObject = pygame.display.Info()
 window_size = (infoObject.current_w, infoObject.current_h)
-screen = pygame.display.set_mode(window_size, pygame.FULLSCREEN)
+screen = pygame.display.set_mode(window_size)
 screen.fill('black')
 
 systems = dict()
@@ -86,41 +85,38 @@ while running:
         if event.type == REDRAW_EVENT:
             screen.fill('black')
             if interplanetary_map_mode:
-                screen.fill('black')
                 interplanetary_map.update()
                 screen.blit(interplanetary_map.surface(), (0, 0))
 
             else:
-                screen.fill('black')
                 systems[interplanetary_map.hero.planet.id].update()
                 screen.blit(systems[interplanetary_map.hero.planet.id].surface, (0, 0))
 
-        # control
-        elif event.type == pygame.KEYDOWN and\
-                event.key == pygame.K_RIGHTBRACKET and\
-                systems[interplanetary_map.hero.planet.id].game_speed < 5 ** 5 and\
-                not interplanetary_map_mode:
-            systems[interplanetary_map.hero.planet.id].game_speed *= 5
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_ESCAPE:
+                running = False
+            if not interplanetary_map_mode:
+                # time speed changing
+                if event.key == pygame.K_RIGHTBRACKET and \
+                        systems[interplanetary_map.hero.planet.id].game_speed < 5 ** 5:
+                    systems[interplanetary_map.hero.planet.id].game_speed *= 5
 
-        elif event.type == pygame.KEYDOWN and\
-                event.key == pygame.K_LEFTBRACKET and\
-                systems[interplanetary_map.hero.planet.id].game_speed > 1 and\
-                not interplanetary_map_mode:
-            systems[interplanetary_map.hero.planet.id].game_speed //= 5
+                if event.key == pygame.K_LEFTBRACKET and \
+                        systems[interplanetary_map.hero.planet.id].game_speed > 1:
+                    systems[interplanetary_map.hero.planet.id].game_speed //= 5
 
-        elif event.type == pygame.KEYDOWN and\
-                event.key == pygame.K_n and\
-                not interplanetary_map.hero.in_travel\
-                and not systems[interplanetary_map.hero.planet.id].map_mode:
-            interplanetary_map_mode = not interplanetary_map_mode
+                # mpa mode changing
+                if event.key == pygame.K_m:
+                    systems[interplanetary_map.hero.planet.id].map_mode = not systems[
+                        interplanetary_map.hero.planet.id].map_mode
 
-        elif event.type == pygame.KEYDOWN and\
-                event.key == pygame.K_m and\
-                not interplanetary_map_mode:
-            systems[interplanetary_map.hero.planet.id].map_mode = not systems[interplanetary_map.hero.planet.id].map_mode
+            if event.key == pygame.K_n and \
+                    not interplanetary_map.hero.in_travel \
+                    and not systems[interplanetary_map.hero.planet.id].map_mode:
+                interplanetary_map_mode = not interplanetary_map_mode
 
-        elif event.type == pygame.MOUSEBUTTONDOWN and event.button == pygame.BUTTON_LEFT and interplanetary_map_mode:
-            interplanetary_map.click_object(event.pos)
+            if event.type == pygame.MOUSEBUTTONDOWN and event.button == pygame.BUTTON_LEFT and interplanetary_map_mode:
+                interplanetary_map.click_object(event.pos)
 
     pygame.display.flip()
 pygame.quit()
