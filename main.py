@@ -68,7 +68,6 @@ screen.blit(text, (text_x, text_y))
 pygame.display.update()
 
 
-
 systems = dict()
 interplanetary_map = InterplanetaryMap(window_size)
 star = StarOnMap(interplanetary_map, 'HR 8799')
