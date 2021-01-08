@@ -123,8 +123,8 @@ while running:
                     and not systems[interplanetary_map.hero.planet.id].map_mode:
                 interplanetary_map_mode = not interplanetary_map_mode
 
-            if event.type == pygame.MOUSEBUTTONDOWN and event.button == pygame.BUTTON_LEFT and interplanetary_map_mode:
-                interplanetary_map.click_object(event.pos)
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == pygame.BUTTON_LEFT and interplanetary_map_mode:
+            interplanetary_map.click_object(event.pos)
 
     pygame.display.flip()
 pygame.quit()
