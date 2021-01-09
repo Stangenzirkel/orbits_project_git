@@ -34,6 +34,7 @@ def load_image(name, color_key=None):
 
     return image
 
+
 class Interface:
     def __init__(self, surface):
         self.interface_surface = pygame.Surface(surface.get_size(), pygame.SRCALPHA, 32)
@@ -56,7 +57,8 @@ class Interface:
         pygame.draw.line(self.interface_surface, 'green', (pygame.mouse.get_pos()[0], 0),
                          (pygame.mouse.get_pos()[0], pygame.mouse.get_pos()[1] - rect_size // 2))
 
-        pygame.draw.line(self.interface_surface, 'green', (pygame.mouse.get_pos()[0], self.interface_surface.get_size()[1]),
+        pygame.draw.line(self.interface_surface, 'green',
+                         (pygame.mouse.get_pos()[0], self.interface_surface.get_size()[1]),
                          (pygame.mouse.get_pos()[0], pygame.mouse.get_pos()[1] + rect_size // 2))
 
     def draw_background(self):
@@ -77,7 +79,7 @@ class Interface:
         return grid_surface
 
     def get_cursor_global_pos(self):
-        return map_cam_pos_x - (self.interface_surface.get_width() // 2 - pygame.mouse.get_pos()[0]) * MAP_VIEW_SIZE,\
+        return map_cam_pos_x - (self.interface_surface.get_width() // 2 - pygame.mouse.get_pos()[0]) * MAP_VIEW_SIZE, \
                map_cam_pos_y - (self.interface_surface.get_height() // 2 - pygame.mouse.get_pos()[1]) * MAP_VIEW_SIZE
 
     def render_on_map(self):
@@ -87,7 +89,8 @@ class Interface:
 
     def draw_label(self):
         for key in self.labels.keys():
-            pygame.draw.line(self.interface_surface, 'green', key.pos_on_map(), (key.pos_on_map()[0] + 50, key.pos_on_map()[1] - 50))
+            pygame.draw.line(self.interface_surface, 'green', key.pos_on_map(),
+                             (key.pos_on_map()[0] + 50, key.pos_on_map()[1] - 50))
 
             out = self.font.render(' '.join(self.labels[key]), True, 'green')
             self.interface_surface.blit(out, (key.pos_on_map()[0] + 55, key.pos_on_map()[1] - 68))
@@ -128,7 +131,8 @@ class OrbitMarker:
 
             coef = 200 / self.line_life
             for particle in self.particles:
-                pygame.draw.circle(self.marker_surface, (int(particle[1] * coef), int(particle[1] * coef), int(particle[1] * coef)),
+                pygame.draw.circle(self.marker_surface,
+                                   (int(particle[1] * coef), int(particle[1] * coef), int(particle[1] * coef)),
                                    particle[0], 2, 0)
 
         surface.blit(self.marker_surface, (0, 0))
@@ -206,9 +210,9 @@ class PhysicalObject:
             return None
 
         x_ellipse = map_view.get_width() // 2 - (
-                    map_cam_pos_x - int(self.orbit_parent.x - self.calculate_periapsis())) / MAP_VIEW_SIZE
+                map_cam_pos_x - int(self.orbit_parent.x - self.calculate_periapsis())) / MAP_VIEW_SIZE
         y_ellipse = map_view.get_height() // 2 - (
-                    map_cam_pos_y - int(self.orbit_parent.y - self.b)) / MAP_VIEW_SIZE
+                map_cam_pos_y - int(self.orbit_parent.y - self.b)) / MAP_VIEW_SIZE
 
         pygame.draw.ellipse(map_view, (0, 100, 0),
                             (x_ellipse, y_ellipse, int(self.a * 2 / MAP_VIEW_SIZE), int(self.b * 2 / MAP_VIEW_SIZE)), 1)
@@ -216,13 +220,14 @@ class PhysicalObject:
     def calculate_orbit_ellipse(self):
         if self.orbit_type == 'Unknown orbit' and -1 < abs(self.on_apse_line()) - 90 < 1:
             self.orbit_type = 'Stable orbit'
-            self.apocenter_argument = math.degrees(math.atan((self.orbit_parent.x - self.x) / (self.orbit_parent.y - self.y)))
+            self.apocenter_argument = math.degrees(
+                math.atan((self.orbit_parent.x - self.x) / (self.orbit_parent.y - self.y)))
 
             self.ellipse_surface = pygame.Surface((int(self.a * 2 / 250), int(self.b * 2 / 250)), pygame.SRCALPHA, 32)
             self.ellipse_surface.fill((0, 0, 0, 0))
 
             # pygame.draw.ellipse(self.ellipse_surface, (0, 100, 0),
-                                # (0, 0, int(self.a * 2 / MAP_VIEW_SIZE), int(self.b * 2 / MAP_VIEW_SIZE)), 1)
+            # (0, 0, int(self.a * 2 / MAP_VIEW_SIZE), int(self.b * 2 / MAP_VIEW_SIZE)), 1)
 
         else:
             return None
@@ -256,29 +261,39 @@ class EngineObject:
             return 0, 0
 
         if self.engine_particles_counter == 0:
-            self.engine_particles.append([(self.x - self.engine_position[0] * math.cos(math.radians(self.angle + self.engine_position[1])),
-                                           self.y - self.engine_position[0] * math.sin(math.radians(self.angle + self.engine_position[1]))),
-                                          ((self.speed_x - self.engine_particle_speed * math.cos(math.radians(self.angle + random.randrange(-self.engine_particle_angle, self.engine_particle_angle)))) / FPS,
-                                           (self.speed_y - self.engine_particle_speed * math.sin(math.radians(self.angle + random.randrange(-self.engine_particle_angle, self.engine_particle_angle)))) / FPS),
-                                          self.engine_particle_life + random.randrange(-10, 10)])
+            self.engine_particles.append(
+                [(self.x - self.engine_position[0] * math.cos(math.radians(self.angle + self.engine_position[1])),
+                  self.y - self.engine_position[0] * math.sin(math.radians(self.angle + self.engine_position[1]))),
+                 ((self.speed_x - self.engine_particle_speed * math.cos(math.radians(
+                     self.angle + random.randrange(-self.engine_particle_angle, self.engine_particle_angle)))) / FPS,
+                  (self.speed_y - self.engine_particle_speed * math.sin(math.radians(
+                      self.angle + random.randrange(-self.engine_particle_angle, self.engine_particle_angle)))) / FPS),
+                 self.engine_particle_life + random.randrange(-10, 10)])
 
-        return self.max_thrust * math.cos(math.radians(self.angle)),\
+        return self.max_thrust * math.cos(math.radians(self.angle)), \
                self.max_thrust * math.sin(math.radians(self.angle))
 
     def update_and_render_engine_particles(self, surface):
         self.engine_particles_counter = (self.engine_particles_counter + 1) % 2
 
-        self.engine_particles = list(map(lambda x: [(x[0][0] + x[1][0], x[0][1] + x[1][1]), x[1], x[2] - 1], self.engine_particles))
+        self.engine_particles = list(
+            map(lambda x: [(x[0][0] + x[1][0], x[0][1] + x[1][1]), x[1], x[2] - 1], self.engine_particles))
         self.engine_particles = list(filter(lambda x: x[2] > 3, self.engine_particles))
+        centre_x = surface.get_width() // 2
+        centre_y = surface.get_height() // 2
+        pygame.draw.line(surface, 'green', (centre_x, centre_y), (centre_x + self.speed_x, centre_y + self.speed_y), 2)
 
         for i, particle in enumerate(self.engine_particles):
             pygame.draw.circle(surface, self.calculate_particle_color(particle),
-                               (particle[0][0] - self.x + surface.get_width() // 2, particle[0][1] - self.y + surface.get_height() // 2), 3, 0)
+                               (particle[0][0] - self.x + centre_x,
+                                particle[0][1] - self.y + centre_y), 3, 0)
 
     def calculate_particle_color(self, particle):
         new_color = []
         for i in range(3):
-            new_color.append((self.begin_color[i] * particle[2] + self.end_color[i] * (self.engine_particle_life - particle[2])) / (self.engine_particle_life + 10))
+            new_color.append(
+                (self.begin_color[i] * particle[2] + self.end_color[i] * (self.engine_particle_life - particle[2])) / (
+                        self.engine_particle_life + 10))
 
         return tuple(new_color)
 
@@ -334,12 +349,14 @@ class Spaceship(pygame.sprite.Sprite, PhysicalObject, EngineObject, OrbitMarker)
 
         if map_mode:
             self.render_line(surface)
-            self.rect.x, self.rect.y = self.blitRotate((surface.get_width() // 2 + (self.x - map_cam_pos_x) / MAP_VIEW_SIZE,
-                                                        surface.get_height() // 2 + (self.y - map_cam_pos_y) / MAP_VIEW_SIZE),
-                                                       (10, 10), self.angle + 45, self.or_map_image)
+            self.rect.x, self.rect.y = self.blitRotate(
+                (surface.get_width() // 2 + (self.x - map_cam_pos_x) / MAP_VIEW_SIZE,
+                 surface.get_height() // 2 + (self.y - map_cam_pos_y) / MAP_VIEW_SIZE),
+                (10, 10), self.angle + 45, self.or_map_image)
 
         else:
-            self.rect.x, self.rect.y = self.blitRotate((surface.get_width() // 2, surface.get_height() // 2), (20, 20), self.angle, self.or_image)
+            self.rect.x, self.rect.y = self.blitRotate((surface.get_width() // 2, surface.get_height() // 2), (20, 20),
+                                                       self.angle, self.or_image)
             self.update_and_render_engine_particles(surface)
 
     # ЭТУ ФУНКЦИЮ Я ЧЕСТНОГО УКРАЛ
@@ -359,7 +376,8 @@ class Spaceship(pygame.sprite.Sprite, PhysicalObject, EngineObject, OrbitMarker)
         pivot_move = pivot_rotate - pivot
 
         # calculate the upper left origin of the rotated image
-        origin = (pos[0] - originPos[0] + min_box[0] - pivot_move[0], pos[1] - originPos[1] - max_box[1] + pivot_move[1])
+        origin = (
+            pos[0] - originPos[0] + min_box[0] - pivot_move[0], pos[1] - originPos[1] - max_box[1] + pivot_move[1])
 
         # get a rotated image
         self.image = pygame.transform.rotate(image, angle)
@@ -376,8 +394,9 @@ class Spaceship(pygame.sprite.Sprite, PhysicalObject, EngineObject, OrbitMarker)
             self.marker_on = False
 
     def pos_on_map(self):
-        return map_view.get_width() // 2 + (self.x - map_cam_pos_x) / MAP_VIEW_SIZE,\
+        return map_view.get_width() // 2 + (self.x - map_cam_pos_x) / MAP_VIEW_SIZE, \
                map_view.get_height() // 2 + (self.y - map_cam_pos_y) / MAP_VIEW_SIZE
+
 
 
 class Planet:
@@ -403,7 +422,7 @@ class Planet:
                            self.radius, 0)
 
     def pos_on_map(self):
-        return map_view.get_width() // 2 + (self.x - map_cam_pos_x) / MAP_VIEW_SIZE,\
+        return map_view.get_width() // 2 + (self.x - map_cam_pos_x) / MAP_VIEW_SIZE, \
                map_view.get_height() // 2 + (self.y - map_cam_pos_y) / MAP_VIEW_SIZE
 
 
@@ -415,15 +434,15 @@ class Moon(PhysicalObject, OrbitMarker, Planet):
 
     def update(self):
         self.physical_move(planets=planets)
-        interface.add_text_to_label(self, self.name, 'x: ' + str(int(self.x)), 'y: ' + str(int(self.y)), self.orbit_type)
+        interface.add_text_to_label(self, self.name, 'x: ' + str(int(self.x)), 'y: ' + str(int(self.y)),
+                                    self.orbit_type)
 
 
-map_mode = False
+map_mode = True
 infoObject = pygame.display.Info()
 window_size = (infoObject.current_w, infoObject.current_h)
 screen = pygame.display.set_mode(window_size, pygame.FULLSCREEN)
 screen.fill('black')
-
 
 map_view = pygame.Surface(screen.get_size())
 hero_view = pygame.Surface(screen.get_size())
@@ -445,7 +464,6 @@ moon = Moon('Phi', 200000, 225000, 1000, 5000, 0, 45, base_planet)
 moon_2 = Moon('Tau', 250000, 226000, 1000, 5000, 0, 45, base_planet)
 moon_3 = Moon('Theta', 260000, 226000, 1000, 5000, 0, 40, base_planet)
 
-
 running = True
 clock = pygame.time.Clock()
 
@@ -453,7 +471,7 @@ REDRAW_EVENT = pygame.USEREVENT + 1
 pygame.time.set_timer(REDRAW_EVENT, 10)
 
 while running:
-    clock.tick(FPS)
+    clock.tick(1)
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
@@ -518,9 +536,10 @@ while running:
         elif event.type == pygame.MOUSEBUTTONDOWN and event.button == pygame.BUTTON_LEFT:
             cur_pos = interface.get_cursor_global_pos()
             for planet in planets:
-                if ((planet.x - cur_pos[0]) ** 2 + (planet.y - cur_pos[1]) ** 2) ** 0.5 <= planet.radius + MAP_VIEW_SIZE * 3:
+                if ((planet.x - cur_pos[0]) ** 2 + (
+                        planet.y - cur_pos[1]) ** 2) ** 0.5 <= planet.radius + MAP_VIEW_SIZE * 3:
                     focus_object = planet
                     break
 
-    pygame.display.flip()
+    pygame.display.update()
 pygame.quit()

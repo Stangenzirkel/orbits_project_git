@@ -89,14 +89,14 @@ class PlanetarySystem:
 
     def draw_cursor(self, rect_size=10):
         pygame.draw.rect(self.surface, 'green', (pygame.mouse.get_pos()[0] - rect_size // 2,
-                                                     pygame.mouse.get_pos()[1] - rect_size // 2,
-                                                     rect_size, rect_size), 1)
+                                                 pygame.mouse.get_pos()[1] - rect_size // 2,
+                                                 rect_size, rect_size), 1)
 
         pygame.draw.line(self.surface, 'green', (0, pygame.mouse.get_pos()[1]),
                          (pygame.mouse.get_pos()[0] - rect_size // 2, pygame.mouse.get_pos()[1]))
 
         pygame.draw.line(self.surface, 'green', (self.surface.get_size()[0],
-                                                     pygame.mouse.get_pos()[1]),
+                                                 pygame.mouse.get_pos()[1]),
                          (pygame.mouse.get_pos()[0] + rect_size // 2, pygame.mouse.get_pos()[1]))
 
         pygame.draw.line(self.surface, 'green', (pygame.mouse.get_pos()[0], 0),
@@ -186,7 +186,7 @@ class PhysicalObject:
 class EngineObject:
     def __init__(self, angle, max_thrust=0.5,
                  begin_color=(255, 0, 0), end_color=(0, 0, 0),
-                 engine_particle_speed=200, engine_particle_angle=15, engine_particle_life=30, engine_position=(13, 0)):
+                 engine_particle_speed=300, engine_particle_angle=15, engine_particle_life=60, engine_position=(13, 0)):
 
         self.angle = angle
         self.max_thrust = max_thrust
@@ -206,29 +206,58 @@ class EngineObject:
             return 0, 0
 
         if self.engine_particles_counter == 0:
-            self.engine_particles.append([(self.x - self.engine_position[0] * math.cos(math.radians(self.angle + self.engine_position[1])),
-                                           self.y - self.engine_position[0] * math.sin(math.radians(self.angle + self.engine_position[1]))),
-                                          ((self.speed_x - self.engine_particle_speed * math.cos(math.radians(self.angle + random.randrange(-self.engine_particle_angle, self.engine_particle_angle)))) / FPS,
-                                           (self.speed_y - self.engine_particle_speed * math.sin(math.radians(self.angle + random.randrange(-self.engine_particle_angle, self.engine_particle_angle)))) / FPS),
-                                          self.engine_particle_life + random.randrange(-10, 10)])
+            self.engine_particles.append(
+                [(self.x - self.engine_position[0] * math.cos(math.radians(self.angle + self.engine_position[1])),
+                  self.y - self.engine_position[0] * math.sin(math.radians(self.angle + self.engine_position[1]))),
+                 ((self.speed_x - self.engine_particle_speed * math.cos(math.radians(
+                     self.angle + random.randrange(-self.engine_particle_angle, self.engine_particle_angle)))) / FPS,
+                  (self.speed_y - self.engine_particle_speed * math.sin(math.radians(
+                      self.angle + random.randrange(-self.engine_particle_angle, self.engine_particle_angle)))) / FPS),
+                 self.engine_particle_life + random.randrange(-10, 10)])
 
-        return self.max_thrust * math.cos(math.radians(self.angle)),\
+        return self.max_thrust * math.cos(math.radians(self.angle)), \
                self.max_thrust * math.sin(math.radians(self.angle))
 
     def update_and_render_engine_particles(self, surface):
         self.engine_particles_counter = (self.engine_particles_counter + 1) % 2
 
-        self.engine_particles = list(map(lambda x: [(x[0][0] + x[1][0], x[0][1] + x[1][1]), x[1], x[2] - 1], self.engine_particles))
+        self.engine_particles = list(
+            map(lambda x: [(x[0][0] + x[1][0], x[0][1] + x[1][1]), x[1], x[2] - 1], self.engine_particles))
         self.engine_particles = list(filter(lambda x: x[2] > 3, self.engine_particles))
+
+        centre_x = surface.get_width() // 2
+        centre_y = surface.get_height() // 2
 
         for i, particle in enumerate(self.engine_particles):
             pygame.draw.circle(surface, self.calculate_particle_color(particle),
-                               (particle[0][0] - self.x + surface.get_width() // 2, particle[0][1] - self.y + surface.get_height() // 2), 3, 0)
+                               (particle[0][0] - self.x + centre_x,
+                                particle[0][1] - self.y + centre_y), 3, 0)
+        # self.draw_speed_vector(surface)
+
+    def draw_speed_vector(self, surface):
+        import math
+        rad = math.pi / 180
+        thickness = 3
+        centre_x = surface.get_width() // 2
+        centre_y = surface.get_height() // 2
+        start = (centre_x, centre_y)
+        end = (start[0] + self.speed_x, start[1] + self.speed_y)
+        rotation = (math.atan2(start[1] - end[1], end[0] - start[0])) + math.pi / 2
+        trirad = 1
+        pygame.draw.line(surface, 'green', start, end, thickness)
+        pygame.draw.polygon(surface, 'green', ((end[0] + trirad * math.sin(rotation),
+                                                end[1] + trirad * math.cos(rotation)),
+                                               (end[0] + trirad * math.sin(rotation - 120 * rad),
+                                                end[1] + trirad * math.cos(rotation - 120 * rad)),
+                                               (end[0] + trirad * math.sin(rotation + 120 * rad),
+                                                end[1] + trirad * math.cos(rotation + 120 * rad))))
 
     def calculate_particle_color(self, particle):
         new_color = []
         for i in range(3):
-            new_color.append((self.begin_color[i] * particle[2] + self.end_color[i] * (self.engine_particle_life - particle[2])) / (self.engine_particle_life + 10))
+            new_color.append(
+                (self.begin_color[i] * particle[2] + self.end_color[i] * (self.engine_particle_life - particle[2])) / (
+                        self.engine_particle_life + 10))
 
         return tuple(new_color)
 
@@ -313,7 +342,8 @@ class Spaceship(pygame.sprite.Sprite, PhysicalObject, EngineObject):
         pivot_move = pivot_rotate - pivot
 
         # calculate the upper left origin of the rotated image
-        origin = (pos[0] - originPos[0] + min_box[0] - pivot_move[0], pos[1] - originPos[1] - max_box[1] + pivot_move[1])
+        origin = (
+            pos[0] - originPos[0] + min_box[0] - pivot_move[0], pos[1] - originPos[1] - max_box[1] + pivot_move[1])
 
         # get a rotated image
         self.image = pygame.transform.rotate(image, angle)
@@ -339,7 +369,8 @@ class Planet(pygame.sprite.Sprite):
         self.mass = mass
         self.atmosphere_height = atmosphere_height
 
-        self.or_map_image = pygame.surface.Surface((radius * 2 // MAP_SIZE, radius * 2 // MAP_SIZE), pygame.SRCALPHA, 32)
+        self.or_map_image = pygame.surface.Surface((radius * 2 // MAP_SIZE, radius * 2 // MAP_SIZE), pygame.SRCALPHA,
+                                                   32)
         self.or_map_image.fill((0, 0, 0, 0))
         pygame.draw.circle(self.or_map_image, 'green',
                            (radius // MAP_SIZE, radius // MAP_SIZE),
@@ -381,7 +412,6 @@ class Planet(pygame.sprite.Sprite):
 
         image.blit(planet, (atmosphere_height, atmosphere_height))
         return image
-
 
 
 class Moon(Planet, PhysicalObject):
