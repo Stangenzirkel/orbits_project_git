@@ -57,9 +57,9 @@ def load_system(name):
 
 infoObject = pygame.display.Info()
 window_size = (infoObject.current_w, infoObject.current_h)
-screen = pygame.display.set_mode(window_size)
+screen = pygame.display.set_mode(window_size, pygame.FULLSCREEN)
 font = pygame.font.Font(None, 80)
-text = font.render("Now loading", True, (100, 255, 100))
+text = font.render("Now loading", False, (100, 255, 100))
 text_x = infoObject.current_w // 2 - text.get_width() // 2
 text_y = infoObject.current_h // 2 - text.get_height() // 2
 text_w = text.get_width()

@@ -383,7 +383,6 @@ class Planet(pygame.sprite.Sprite):
         return image
 
 
-
 class Moon(Planet, PhysicalObject):
     def __init__(self, group, x, y, speed_x, speed_y, radius, mass, filename, atmosphere_height):
         Planet.__init__(self, group, x, y, radius, mass, filename, atmosphere_height)
