@@ -135,9 +135,13 @@ while running:
                     print('fire')
 
             if event.key == pygame.K_n and \
-                    not interplanetary_map.hero.in_travel \
-                    and not systems[interplanetary_map.hero.planet.id].map_mode:
+                    not interplanetary_map.hero.in_travel:
                 interplanetary_map_mode = not interplanetary_map_mode
+
+            if event.key == pygame.K_s and \
+                    not interplanetary_map_mode and \
+                    systems[interplanetary_map.hero.planet.id].map_mode:
+                systems[interplanetary_map.hero.planet.id].simulation()
 
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == pygame.BUTTON_LEFT and interplanetary_map_mode:
             interplanetary_map.click_object(event.pos)

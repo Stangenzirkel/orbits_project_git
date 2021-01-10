@@ -187,6 +187,8 @@ class PhysicalObject:
         self.speed_y = speed_y
 
     def calclulate_acceleration_for_obj(self, obj):
+        if obj == self:
+            return 0, 0
         delta_x = self.x - obj.x
         delta_y = self.y - obj.y
 
@@ -325,7 +327,6 @@ class Spaceship(pygame.sprite.Sprite, PhysicalObject, EngineObject):
     def add_weapon(self, weapon):
         self.weapon = weapon
         weapon.set_owner(self)
-
 
     def update(self, surface, objects, hero, game_speed, map_mode):
         if not self.destroyed:
