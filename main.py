@@ -2,7 +2,7 @@ import os
 import pygame
 from planetary_system import PhysicalObject, Spaceship, Planet, Moon, PlanetarySystem
 from interplanetary_map import InterplanetaryMap, PhysicalObjectOnMap, HeroOnMap, StarOnMap, PlanetOnMap
-from weapon import Bullet
+from weapon import Bullet, Weapon
 
 FPS = 60
 files = ['omicron.txt', 'phi.txt', 'theta.txt', 'tau.txt']
@@ -58,9 +58,9 @@ def load_system(name):
 
 infoObject = pygame.display.Info()
 window_size = (infoObject.current_w, infoObject.current_h)
-screen = pygame.display.set_mode(window_size, pygame.FULLSCREEN)
+screen = pygame.display.set_mode(window_size)
 font = pygame.font.Font(None, 80)
-text = font.render("Now loading", False, (100, 255, 100))
+text = font.render("Now loading", True, (100, 255, 100))
 text_x = infoObject.current_w // 2 - text.get_width() // 2
 text_y = infoObject.current_h // 2 - text.get_height() // 2
 text_w = text.get_width()
@@ -87,11 +87,20 @@ screen.fill('black')
 reload_timer = 0
 can_fire = True
 bullets = []
+basic_weapon = Weapon()
+basic_weapon.set_group(systems[interplanetary_map.hero.planet.id].all_view_sprites)
+systems[interplanetary_map.hero.planet.id].hero.add_weapon(basic_weapon)
+RELOAD_EVENT = pygame.USEREVENT + 2
+pygame.time.set_timer(RELOAD_EVENT, systems[interplanetary_map.hero.planet.id].hero.weapon.reload_speed)
 while running:
     clock.tick(FPS)
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
+
+        if event.type == RELOAD_EVENT:
+            if systems[interplanetary_map.hero.planet.id].hero.weapon is not None:
+                systems[interplanetary_map.hero.planet.id].hero.weapon.can_fire = True
 
         if event.type == REDRAW_EVENT:
             screen.fill('black')
@@ -106,11 +115,10 @@ while running:
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_ESCAPE:
                 running = False
-
             if not interplanetary_map_mode:
                 # time speed changing
                 if event.key == pygame.K_RIGHTBRACKET and \
-                        systems[interplanetary_map.hero.planet.id].game_speed < 5 ** 3:
+                        systems[interplanetary_map.hero.planet.id].game_speed < 5 ** 5:
                     systems[interplanetary_map.hero.planet.id].game_speed *= 5
 
                 if event.key == pygame.K_LEFTBRACKET and \
@@ -121,35 +129,17 @@ while running:
                     systems[interplanetary_map.hero.planet.id].map_mode = not systems[
                         interplanetary_map.hero.planet.id].map_mode
 
-                if event.key == pygame.K_f and can_fire:
+                if event.key == pygame.K_f and systems[interplanetary_map.hero.planet.id].hero.weapon.can_fire:
                     owner = systems[interplanetary_map.hero.planet.id].hero
-                    bullet = Bullet(
-                        owner,
-                        systems[interplanetary_map.hero.planet.id].all_view_sprites,
-                        owner.x,
-                        owner.y,
-                        owner.angle,
-                        speed_x=owner.speed_x,
-                        speed_y=owner.speed_y
-                    )
-                    can_fire = False
-                    reload_timer = 0
+                    systems[interplanetary_map.hero.planet.id].hero.fire()
+                    print('fire')
 
             if event.key == pygame.K_n and \
                     not interplanetary_map.hero.in_travel \
                     and not systems[interplanetary_map.hero.planet.id].map_mode:
                 interplanetary_map_mode = not interplanetary_map_mode
 
-            if event.key == pygame.K_s and not interplanetary_map_mode:
-                systems[interplanetary_map.hero.planet.id].simulation()
-
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == pygame.BUTTON_LEFT and interplanetary_map_mode:
             interplanetary_map.click_object(event.pos)
-    reload_timer += 1
     pygame.display.flip()
-    if reload_timer > 100:
-        can_fire = True
-    i = 0
-
-print('quit')
 pygame.quit()

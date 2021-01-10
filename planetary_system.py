@@ -317,6 +317,15 @@ class Spaceship(pygame.sprite.Sprite, PhysicalObject, EngineObject):
         self.rotation_speed = rotation_speed
         self.collision_radius = collision_radius
         self.destroyed = None
+        self.weapon = None
+
+    def fire(self):
+        self.weapon.fire()
+
+    def add_weapon(self, weapon):
+        self.weapon = weapon
+        weapon.set_owner(self)
+
 
     def update(self, surface, objects, hero, game_speed, map_mode):
         if not self.destroyed:

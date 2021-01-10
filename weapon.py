@@ -18,6 +18,41 @@ def load_image(name, color_key=None):
     return image
 
 
+class Weapon:
+    def __init__(self, collision_radius=1, life_span=1200, special=False, reload=1000):
+        self.collision_radius = collision_radius
+        self.life_span = life_span
+        self.special = special
+        self.owner = None
+        self.group = None
+        self.can_fire = True
+        self.reload_speed = reload
+
+    def set_owner(self, owner):
+        self.owner = owner
+
+    def set_group(self, group):
+        self.group = group
+
+    def fire(self):
+        if self.owner is not None and self.group is not None:
+            Bullet(
+                self.owner,
+                self.group,
+                self.owner.x,
+                self.owner.y,
+                self.owner.angle,
+                speed_x=self.owner.speed_x,
+                speed_y=self.owner.speed_y
+            )
+            self.can_fire = False
+        elif self.owner is None:
+            print('*Weapon* no owner')
+        else:
+            print('*Weapon* no sprite group')
+
+
+
 class Bullet(pygame.sprite.Sprite, PhysicalObject):
     def __init__(self, owner, group, x, y, angle, speed_x=0, speed_y=0, collision_radius=1, life_span=1200):
         speed = 60
@@ -31,7 +66,6 @@ class Bullet(pygame.sprite.Sprite, PhysicalObject):
 
         self.or_image = load_image("bullet.png", -1)
         self.or_image = pygame.transform.scale(self.or_image, (20, 20))
-
 
         self.collision_radius = collision_radius
         self.life_span = life_span
