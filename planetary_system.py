@@ -40,6 +40,7 @@ class PlanetarySystem:
         self.background = self.draw_background()
         self.stars = []
         self.create_stars()
+        self.simulation_points = []
 
     def update(self):
         self.surface.fill('black')
@@ -64,6 +65,8 @@ class PlanetarySystem:
         if self.map_mode:
             self.surface.blit(self.font.render('MAP mode', True, 'green'), (20, 20))
             self.draw_cursor()
+            for point in self.simulation_points:
+                pygame.draw.circle(self.surface, (0, 100, 0), point, 1)
 
     def load_object(self, line):
         line = line.split(', ')
@@ -154,6 +157,24 @@ class PlanetarySystem:
 
             pygame.draw.circle(self.surface, (star[2], star[2], star[2]), (star[0], star[1]), star[3])
 
+    def simulation(self):
+        points = []
+        counter = 0
+        simulation_objects = list(map(lambda x: VirtualObject(x), self.objects))
+        simulation_objects.append(VirtualObject(self.hero))
+        for step in range(2500):
+            for object in simulation_objects:
+                if type(object.parent) == Spaceship:
+                    counter = (counter + 1) % 10
+                    if not counter:
+                        print(object.x, object.y, self.hero.x, self.hero.y)
+                        points.append((self.surface.get_width() // 2 + object.x / MAP_SIZE,
+                                       self.surface.get_height() // 2 + object.y / MAP_SIZE))
+
+                object.move(10, simulation_objects)
+
+        self.simulation_points = points
+
 
 class PhysicalObject:
     def __init__(self, x, y, speed_x, speed_y):
@@ -165,22 +186,36 @@ class PhysicalObject:
         self.speed_x = speed_x
         self.speed_y = speed_y
 
+    def calclulate_acceleration_for_obj(self, obj):
+        delta_x = self.x - obj.x
+        delta_y = self.y - obj.y
+
+        a = obj.mass * GRAVITY / (delta_x ** 2 + delta_y ** 2)
+        a_x = delta_x * -a / ((delta_x ** 2 + delta_y ** 2) ** 0.5)
+        a_y = delta_y * -a / ((delta_x ** 2 + delta_y ** 2) ** 0.5)
+
+        return a_x, a_y
+
+    def calculate_next_position(self, game_speed, position, speed, acceleration):
+        speed[0] += acceleration[0] * game_speed
+        speed[1] += acceleration[1] * game_speed
+
+        position[0] += speed[0] / FPS * game_speed
+        position[1] += speed[1] / FPS * game_speed
+
+        return position[0], position[1], speed[0], speed[1]
+
     def physical_move(self, game_speed, a_x=0, a_y=0, planets=[]):
         for planet in planets:
-            if planet.mass == 0:
-                continue
+            if planet.mass != 0:
+                a = self.calclulate_acceleration_for_obj(planet)
+                a_x += a[0]
+                a_y += a[1]
 
-            delta_x = self.x - planet.x
-            delta_y = self.y - planet.y
-            a = planet.mass * GRAVITY / (delta_x ** 2 + delta_y ** 2)
-            a_x += delta_x * -a / ((delta_x ** 2 + delta_y ** 2) ** 0.5)
-            a_y += delta_y * -a / ((delta_x ** 2 + delta_y ** 2) ** 0.5)
-
-        self.speed_x += a_x * game_speed
-        self.speed_y += a_y * game_speed
-
-        self.x += self.speed_x / FPS * game_speed
-        self.y += self.speed_y / FPS * game_speed
+        self.x, self.y, self.speed_x, self.speed_y = self.calculate_next_position(game_speed,
+                                                                                  [self.x, self.y],
+                                                                                  [self.speed_x, self.speed_y],
+                                                                                  [a_x, a_y])
 
 
 class EngineObject:
@@ -427,3 +462,28 @@ class Moon(Planet, PhysicalObject):
             self.render_on_map(surface)
 
         self.physical_move(game_speed, planets=[objects[0]])
+
+
+class VirtualObject(PhysicalObject):
+    def __init__(self, parent):
+        self.parent = parent
+        self.x = parent.x
+        self.y = parent.y
+
+        if type(parent) == Planet:
+            self.speed_x, self.speed_y = 0, 0
+
+        else:
+            self.speed_x, self.speed_y = parent.speed_x, parent.speed_y
+
+        if type(parent) == Spaceship:
+            self.mass = 0
+
+        else:
+            self.mass = parent.mass
+
+        PhysicalObject.__init__(self, self.x, self.y, self.speed_x, self.speed_y)
+
+    def move(self, simulation_step, simulation_objects):
+        if type(self.parent) != Planet:
+            self.physical_move(simulation_step, planets=simulation_objects)

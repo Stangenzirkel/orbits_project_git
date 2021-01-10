@@ -76,8 +76,6 @@ class Bullet(pygame.sprite.Sprite, PhysicalObject):
         else:
             self.physical_move(game_speed, planets=objects)
 
-            print(self.angle)
-
             if not map_mode:
                 self.render(surface)
 
@@ -85,4 +83,4 @@ class Bullet(pygame.sprite.Sprite, PhysicalObject):
         x, y = self.x - self.owner.x + surface.get_width() // 2, \
                self.y - self.owner.y + surface.get_height() // 2
         self.rect.x, self.rect.y = self.blitRotate((x, y), (10, 10),
-                                                   self.angle + 90, self.or_image)
+                                                   self.angle - 90, self.or_image)

@@ -106,10 +106,11 @@ while running:
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_ESCAPE:
                 running = False
+
             if not interplanetary_map_mode:
                 # time speed changing
                 if event.key == pygame.K_RIGHTBRACKET and \
-                        systems[interplanetary_map.hero.planet.id].game_speed < 5 ** 5:
+                        systems[interplanetary_map.hero.planet.id].game_speed < 5 ** 3:
                     systems[interplanetary_map.hero.planet.id].game_speed *= 5
 
                 if event.key == pygame.K_LEFTBRACKET and \
@@ -133,12 +134,14 @@ while running:
                     )
                     can_fire = False
                     reload_timer = 0
-                    print('fire')
 
             if event.key == pygame.K_n and \
                     not interplanetary_map.hero.in_travel \
                     and not systems[interplanetary_map.hero.planet.id].map_mode:
                 interplanetary_map_mode = not interplanetary_map_mode
+
+            if event.key == pygame.K_s and not interplanetary_map_mode:
+                systems[interplanetary_map.hero.planet.id].simulation()
 
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == pygame.BUTTON_LEFT and interplanetary_map_mode:
             interplanetary_map.click_object(event.pos)
@@ -146,12 +149,7 @@ while running:
     pygame.display.flip()
     if reload_timer > 100:
         can_fire = True
-    print('---')
     i = 0
-    for el in systems[interplanetary_map.hero.planet.id].all_view_sprites:
-        if i >= 3:
-            print(el.rect)
-        else:
-            i += 1
-    print('---')
+
+print('quit')
 pygame.quit()
