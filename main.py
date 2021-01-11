@@ -93,7 +93,7 @@ bullets = []
 cannon_weapon = Weapon(bullet=Shell)
 cannon_weapon.set_group(current_system.all_view_sprites)
 
-minigun_weapon = Weapon(life_span=50, reload=2, bullet_speed=500)
+minigun_weapon = Weapon(life_span=50, magazine_size=60, reload_time=24, bullet_speed=500, image='minigun_sprite.png')
 minigun_weapon.set_group(current_system.all_view_sprites)
 
 current_system.hero.add_weapon(cannon_weapon, 1)

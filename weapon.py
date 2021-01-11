@@ -1,6 +1,7 @@
 import math
 import os
 import pygame
+import copy
 from planetary_system import PhysicalObject, FPS
 
 
@@ -119,17 +120,40 @@ class Shell(PhysicalObject, Bullet):
 
 
 class Weapon:
-    def __init__(self, collision_radius=1, life_span=1200, special=False, reload=100, bullet=Bullet, bullet_speed=60):
+    def __init__(self,
+                 collision_radius=1,
+                 life_span=1200,
+                 special=False,
+                 magazine_size=1,
+                 reload_time=100,
+                 cooldown=4,
+                 bullet=Bullet,
+                 bullet_speed=60,
+                 image='cannon_sprite.png',
+                 bullet_image='shell.png'):
         self.collision_radius = collision_radius
         self.life_span = life_span
         self.special = special
         self.bullet = bullet
         self.bullet_speed = bullet_speed
+
         self.owner = None
         self.group = None
-        self.can_fire = True
-        self.reload_speed = reload
+
+        self.magazine_size = magazine_size
+        self.magazine_filling = magazine_size
+        self.reload_time = reload_time
         self.reload_timer = 0
+        self.cooldown = cooldown
+        self.cooldown_timer = cooldown
+
+        self.image = load_image(image, -1)
+        self.image = pygame.transform.scale(self.image, (120, 180))
+
+        self.bullet_image = load_image(bullet_image, -1)
+        self.bullet_image = pygame.transform.scale(self.bullet_image, (20, 180 // magazine_size))
+        self.bullet_image_hollow = copy.copy(self.bullet_image).convert_alpha()
+        self.bullet_image_hollow.set_alpha(100)
 
     def set_owner(self, owner):
         self.owner = owner
@@ -138,7 +162,11 @@ class Weapon:
         self.group = group
 
     def fire(self):
-        if self.owner is not None and self.group is not None:
+        if self.owner is not None and \
+                self.group is not None and \
+                self.magazine_filling > 0 and \
+                self.cooldown_timer == self.cooldown:
+
             self.bullet(
                 self.group,
                 self.owner.x,
@@ -148,19 +176,23 @@ class Weapon:
                 speed_x=self.owner.speed_x,
                 speed_y=self.owner.speed_y
             )
-            self.can_fire = False
-            self.reload_timer = 0
+
+            self.magazine_filling -= 1
+            self.cooldown_timer = 0
+
         elif self.owner is None:
-            print('*Weapon* no owner')
+            print(self, '*Weapon* no owner')
         else:
-            print('*Weapon* no sprite group')
+            print(self, '*Weapon* no sprite group')
 
     def update(self):
-        if self.reload_timer >= self.reload_speed:
-            self.can_fire = True
+        if self.cooldown_timer < self.cooldown:
+            self.cooldown_timer += 1
 
-        if not self.can_fire:
-            self.reload_timer += 1
+        if self.magazine_filling < self.magazine_size and self.cooldown_timer == self.cooldown:
+            self.reload_timer = (self.reload_timer + 1) % self.reload_time
+            if not self.reload_timer:
+                self.magazine_filling += 1
 
 
 

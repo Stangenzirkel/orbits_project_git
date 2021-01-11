@@ -61,6 +61,8 @@ class PlanetarySystem:
 
         self.all_view_sprites.draw(self.surface)
         self.all_view_sprites.update(self.surface, self.objects, self.hero, self.game_speed, self.map_mode)
+        self.hero.draw_interface(self.surface)
+        self.surface.blit(self.hero.interface_surface, (0, 0))
 
         if self.map_mode:
             self.surface.blit(self.font.render('MAP mode', True, 'green'), (20, 20))
@@ -319,6 +321,7 @@ class Spaceship(pygame.sprite.Sprite, PhysicalObject, EngineObject):
         self.collision_radius = collision_radius
         self.destroyed = None
         self.weapons = dict()
+        self.interface_surface = pygame.surface.Surface((0, 0))
 
     def fire(self, id):
         self.weapons[id].fire()
@@ -343,13 +346,11 @@ class Spaceship(pygame.sprite.Sprite, PhysicalObject, EngineObject):
             if keys[pygame.K_LEFT]:
                 self.angle = (self.angle - self.rotation_speed) % 360
 
-            if keys[pygame.K_f] and self.weapons[1].can_fire:
+            if keys[pygame.K_f]:
                 self.fire(1)
-                print('fire_cannon')
 
-            if keys[pygame.K_g] and self.weapons[2].can_fire:
+            if keys[pygame.K_g]:
                 self.fire(2)
-                print('fire_minigun')
 
             self.physical_move(game_speed, a_x=a_x, a_y=a_y, planets=objects)
 
@@ -413,6 +414,27 @@ class Spaceship(pygame.sprite.Sprite, PhysicalObject, EngineObject):
         if distanse < self.collision_radius + planet.radius - planet.atmosphere_height // 2:
             self.destroyed = planet, delta_x, delta_y
             self.marker_on = False
+
+    def draw_interface(self, surface):
+        self.interface_surface = pygame.surface.Surface(surface.get_size(), pygame.SRCALPHA, 32)
+        self.interface_surface.fill((0, 0, 0, 0))
+
+        for i, key in enumerate(self.weapons.keys()):
+            weapon = self.weapons[key]
+            self.interface_surface.blit(weapon.image,
+                                        (self.interface_surface.get_width() - (i + 1) * 140,
+                                         self.interface_surface.get_height() - 240))
+
+            for j in range(weapon.magazine_size):
+                if j < weapon.magazine_filling:
+                    self.interface_surface.blit(weapon.bullet_image,
+                                 (self.interface_surface.get_width() - (i + 1) * 140 + 100,
+                                  self.interface_surface.get_height() - 240 + j * weapon.bullet_image.get_height()))
+
+                else:
+                    self.interface_surface.blit(weapon.bullet_image_hollow,
+                                 (self.interface_surface.get_width() - (i + 1) * 140 + 100,
+                                  self.interface_surface.get_height() - 240 + j * weapon.bullet_image.get_height()))
 
 
 class Planet(pygame.sprite.Sprite):
