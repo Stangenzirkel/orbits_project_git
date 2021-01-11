@@ -83,15 +83,18 @@ clock = pygame.time.Clock()
 
 REDRAW_EVENT = pygame.USEREVENT + 1
 pygame.time.set_timer(REDRAW_EVENT, 1000 // FPS)
+
 screen.fill('black')
 reload_timer = 0
 can_fire = True
 bullets = []
 basic_weapon = Weapon()
 basic_weapon.set_group(systems[interplanetary_map.hero.planet.id].all_view_sprites)
+
 systems[interplanetary_map.hero.planet.id].hero.add_weapon(basic_weapon)
 RELOAD_EVENT = pygame.USEREVENT + 2
 pygame.time.set_timer(RELOAD_EVENT, systems[interplanetary_map.hero.planet.id].hero.weapon.reload_speed)
+
 while running:
     clock.tick(FPS)
     for event in pygame.event.get():
@@ -118,7 +121,7 @@ while running:
             if not interplanetary_map_mode:
                 # time speed changing
                 if event.key == pygame.K_RIGHTBRACKET and \
-                        systems[interplanetary_map.hero.planet.id].game_speed < 5 ** 5:
+                        systems[interplanetary_map.hero.planet.id].game_speed < 5 ** 2:
                     systems[interplanetary_map.hero.planet.id].game_speed *= 5
 
                 if event.key == pygame.K_LEFTBRACKET and \

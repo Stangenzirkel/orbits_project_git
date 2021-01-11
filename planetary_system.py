@@ -163,11 +163,10 @@ class PlanetarySystem:
         simulation_objects = list(map(lambda x: VirtualObject(x), self.objects))
         simulation_objects.append(VirtualObject(self.hero))
         for step in range(2500):
+            counter = (counter + 1) % 10
             for object in simulation_objects:
                 if type(object.parent) == Spaceship:
-                    counter = (counter + 1) % 10
                     if not counter:
-                        print(object.x, object.y, self.hero.x, self.hero.y)
                         points.append((self.surface.get_width() // 2 + object.x / MAP_SIZE,
                                        self.surface.get_height() // 2 + object.y / MAP_SIZE))
 
