@@ -318,13 +318,13 @@ class Spaceship(pygame.sprite.Sprite, PhysicalObject, EngineObject):
         self.rotation_speed = rotation_speed
         self.collision_radius = collision_radius
         self.destroyed = None
-        self.weapon = None
+        self.weapons = dict()
 
-    def fire(self):
-        self.weapon.fire()
+    def fire(self, id):
+        self.weapons[id].fire()
 
-    def add_weapon(self, weapon):
-        self.weapon = weapon
+    def add_weapon(self, weapon, id):
+        self.weapons[id] = weapon
         weapon.set_owner(self)
 
     def update(self, surface, objects, hero, game_speed, map_mode):
@@ -343,6 +343,14 @@ class Spaceship(pygame.sprite.Sprite, PhysicalObject, EngineObject):
             if keys[pygame.K_LEFT]:
                 self.angle = (self.angle - self.rotation_speed) % 360
 
+            if keys[pygame.K_f] and self.weapons[1].can_fire:
+                self.fire(1)
+                print('fire_cannon')
+
+            if keys[pygame.K_g] and self.weapons[2].can_fire:
+                self.fire(2)
+                print('fire_minigun')
+
             self.physical_move(game_speed, a_x=a_x, a_y=a_y, planets=objects)
 
             for object in objects:
@@ -358,6 +366,9 @@ class Spaceship(pygame.sprite.Sprite, PhysicalObject, EngineObject):
 
         else:
             self.render_on_map(surface)
+
+        for key in self.weapons.keys():
+            self.weapons[key].update()
 
     def render_on_view(self, surface):
         self.rect.x, self.rect.y = self.blitRotate((surface.get_width() // 2, surface.get_height() // 2), (20, 20),

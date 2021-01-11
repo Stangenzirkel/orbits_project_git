@@ -2,7 +2,7 @@ import os
 import pygame
 from planetary_system import PhysicalObject, Spaceship, Planet, Moon, PlanetarySystem
 from interplanetary_map import InterplanetaryMap, PhysicalObjectOnMap, HeroOnMap, StarOnMap, PlanetOnMap
-from weapon import Bullet, Weapon
+from weapon import Shell, Weapon
 
 FPS = 60
 files = ['omicron.txt', 'phi.txt', 'theta.txt', 'tau.txt']
@@ -77,6 +77,7 @@ for name in files:
 
 hero = HeroOnMap(interplanetary_map, interplanetary_map.objects[-1])
 interplanetary_map_mode = False
+current_system = systems[interplanetary_map.hero.planet.id]
 
 running = True
 clock = pygame.time.Clock()
@@ -88,22 +89,21 @@ screen.fill('black')
 reload_timer = 0
 can_fire = True
 bullets = []
-basic_weapon = Weapon()
-basic_weapon.set_group(systems[interplanetary_map.hero.planet.id].all_view_sprites)
 
-systems[interplanetary_map.hero.planet.id].hero.add_weapon(basic_weapon)
-RELOAD_EVENT = pygame.USEREVENT + 2
-pygame.time.set_timer(RELOAD_EVENT, systems[interplanetary_map.hero.planet.id].hero.weapon.reload_speed)
+cannon_weapon = Weapon(bullet=Shell)
+cannon_weapon.set_group(current_system.all_view_sprites)
+
+minigun_weapon = Weapon(life_span=50, reload=2, bullet_speed=500)
+minigun_weapon.set_group(current_system.all_view_sprites)
+
+current_system.hero.add_weapon(cannon_weapon, 1)
+current_system.hero.add_weapon(minigun_weapon, 2)
 
 while running:
     clock.tick(FPS)
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
-
-        if event.type == RELOAD_EVENT:
-            if systems[interplanetary_map.hero.planet.id].hero.weapon is not None:
-                systems[interplanetary_map.hero.planet.id].hero.weapon.can_fire = True
 
         if event.type == REDRAW_EVENT:
             screen.fill('black')
@@ -112,8 +112,8 @@ while running:
                 screen.blit(interplanetary_map.surface(), (0, 0))
 
             else:
-                systems[interplanetary_map.hero.planet.id].update()
-                screen.blit(systems[interplanetary_map.hero.planet.id].surface, (0, 0))
+                current_system.update()
+                screen.blit(current_system.surface, (0, 0))
 
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_ESCAPE:
@@ -121,21 +121,16 @@ while running:
             if not interplanetary_map_mode:
                 # time speed changing
                 if event.key == pygame.K_RIGHTBRACKET and \
-                        systems[interplanetary_map.hero.planet.id].game_speed < 5 ** 2:
-                    systems[interplanetary_map.hero.planet.id].game_speed *= 5
+                        current_system.game_speed < 5 ** 2:
+                    current_system.game_speed *= 5
 
                 if event.key == pygame.K_LEFTBRACKET and \
-                        systems[interplanetary_map.hero.planet.id].game_speed > 1:
-                    systems[interplanetary_map.hero.planet.id].game_speed //= 5
+                        current_system.game_speed > 1:
+                    current_system.game_speed //= 5
 
                 if event.key == pygame.K_m:
-                    systems[interplanetary_map.hero.planet.id].map_mode = not systems[
+                    current_system.map_mode = not systems[
                         interplanetary_map.hero.planet.id].map_mode
-
-                if event.key == pygame.K_f and systems[interplanetary_map.hero.planet.id].hero.weapon.can_fire:
-                    owner = systems[interplanetary_map.hero.planet.id].hero
-                    systems[interplanetary_map.hero.planet.id].hero.fire()
-                    print('fire')
 
             if event.key == pygame.K_n and \
                     not interplanetary_map.hero.in_travel:
@@ -143,10 +138,11 @@ while running:
 
             if event.key == pygame.K_s and \
                     not interplanetary_map_mode and \
-                    systems[interplanetary_map.hero.planet.id].map_mode:
-                systems[interplanetary_map.hero.planet.id].simulation()
+                    current_system.map_mode:
+                current_system.simulation()
 
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == pygame.BUTTON_LEFT and interplanetary_map_mode:
             interplanetary_map.click_object(event.pos)
+            current_system = systems[interplanetary_map.hero.planet.id]
     pygame.display.flip()
 pygame.quit()
