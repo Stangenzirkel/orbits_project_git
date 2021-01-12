@@ -328,7 +328,7 @@ class Spaceship(pygame.sprite.Sprite, PhysicalObject, EngineObject):
 
     def add_weapon(self, weapon, id):
         self.weapons[id] = weapon
-        weapon.set_owner(self)
+        self.weapons[id].set_owner(self)
 
     def update(self, surface, objects, hero, game_speed, map_mode):
         if not self.destroyed:

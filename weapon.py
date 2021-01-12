@@ -74,16 +74,19 @@ class Bullet(pygame.sprite.Sprite):
 
         else:
             self.x += self.speed_x / FPS * game_speed
-            self.y += self.speed_y / FPS* game_speed
+            self.y += self.speed_y / FPS * game_speed
 
-            if not map_mode:
-                self.render(surface, hero)
+            self.render(surface, hero, map_mode)
 
-    def render(self, surface, hero):
-        x, y = self.x - hero.x + surface.get_width() // 2, \
-               self.y - hero.y + surface.get_height() // 2
-        self.rect.x, self.rect.y = self.blitRotate((x, y), (10, 10),
-                                                   self.angle - 90, self.or_image)
+    def render(self, surface, hero, map_mode):
+        if not map_mode:
+            x, y = self.x - hero.x + surface.get_width() // 2, \
+                   self.y - hero.y + surface.get_height() // 2
+            self.rect.x, self.rect.y = self.blitRotate((x, y), (10, 10),
+                                                       self.angle - 90, self.or_image)
+
+        else:
+            self.rect.x, self.rect.y = -100, -100
 
 
 # high-damage bullet with physic
@@ -115,8 +118,7 @@ class Shell(PhysicalObject, Bullet):
         else:
             self.physical_move(game_speed, planets=objects)
 
-            if not map_mode:
-                self.render(surface, hero)
+        self.render(surface, hero, map_mode)
 
 
 class Weapon:
@@ -129,7 +131,7 @@ class Weapon:
                  cooldown=4,
                  bullet=Bullet,
                  bullet_speed=60,
-                 image='cannon_sprite.png',
+                 image='cannon_sprite_2.png',
                  bullet_image='shell.png'):
         self.collision_radius = collision_radius
         self.life_span = life_span
@@ -167,6 +169,7 @@ class Weapon:
                 self.magazine_filling > 0 and \
                 self.cooldown_timer == self.cooldown:
 
+            print(self)
             self.bullet(
                 self.group,
                 self.owner.x,
@@ -180,9 +183,13 @@ class Weapon:
             self.magazine_filling -= 1
             self.cooldown_timer = 0
 
+        elif self.cooldown_timer != self.cooldown:
+            print('cooldown')
+
         elif self.owner is None:
             print(self, '*Weapon* no owner')
-        else:
+
+        elif self.group is None:
             print(self, '*Weapon* no sprite group')
 
     def update(self):

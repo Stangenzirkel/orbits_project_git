@@ -1,8 +1,9 @@
 import os
 import pygame
+import copy
 from planetary_system import PhysicalObject, Spaceship, Planet, Moon, PlanetarySystem
 from interplanetary_map import InterplanetaryMap, PhysicalObjectOnMap, HeroOnMap, StarOnMap, PlanetOnMap
-from weapon import Shell, Weapon
+from weapon import Bullet, Shell, Weapon
 
 FPS = 60
 files = ['omicron.txt', 'phi.txt', 'theta.txt', 'tau.txt']
@@ -53,6 +54,14 @@ def load_system(name):
                             angle=int(hero_angle),
                             speed_x=float(hero_speed_x),
                             speed_y=float(hero_speed_y))
+
+    first_weapon = copy.copy(minigun_weapon)
+    first_weapon.set_group(system.all_view_sprites)
+    system.hero.add_weapon(first_weapon, 1)
+
+    second_weapon = copy.copy(cannon_weapon)
+    second_weapon.set_group(system.all_view_sprites)
+    system.hero.add_weapon(second_weapon, 2)
     systems[id] = system
 
 
@@ -72,6 +81,9 @@ systems = dict()
 interplanetary_map = InterplanetaryMap(window_size)
 star = StarOnMap(interplanetary_map, 'HR 8799')
 
+cannon_weapon = Weapon(bullet=Shell)
+minigun_weapon = Weapon(life_span=50, magazine_size=60, reload_time=24, bullet_speed=500, image='minigun_sprite.png')
+
 for name in files:
     load_system(name)
 
@@ -86,18 +98,6 @@ REDRAW_EVENT = pygame.USEREVENT + 1
 pygame.time.set_timer(REDRAW_EVENT, 1000 // FPS)
 
 screen.fill('black')
-reload_timer = 0
-can_fire = True
-bullets = []
-
-cannon_weapon = Weapon(bullet=Shell)
-cannon_weapon.set_group(current_system.all_view_sprites)
-
-minigun_weapon = Weapon(life_span=50, magazine_size=60, reload_time=24, bullet_speed=500, image='minigun_sprite.png')
-minigun_weapon.set_group(current_system.all_view_sprites)
-
-current_system.hero.add_weapon(cannon_weapon, 1)
-current_system.hero.add_weapon(minigun_weapon, 2)
 
 while running:
     clock.tick(FPS)
