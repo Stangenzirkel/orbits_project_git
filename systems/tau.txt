@@ -5,3 +5,6 @@ Tau
 
 planet, 0, 0, 6000, 100000, planet_1.png, 200
 moon, 30000, 0, 1000, 30000, 0, 150, planet_2.png, 20
+
+//enemy
+station.png, 200, 20, 180, 5, 0

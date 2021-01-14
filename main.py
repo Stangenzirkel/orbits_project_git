@@ -4,6 +4,7 @@ import copy
 from planetary_system import PhysicalObject, Spaceship, Planet, Moon, PlanetarySystem
 from interplanetary_map import InterplanetaryMap, PhysicalObjectOnMap, HeroOnMap, StarOnMap, PlanetOnMap
 from weapon import Bullet, Shell, Weapon
+from enemy import Enemy
 
 FPS = 60
 files = ['omicron.txt', 'phi.txt', 'theta.txt', 'tau.txt']
@@ -41,10 +42,27 @@ def load_system(name):
                 float(map_apsis_argument),
                 radius=int(map_radius),
                 mass=int(map_mass))
-
+    started_enemies = False
     system = PlanetarySystem(id, window_size)
     for line in file[4:len(file)]:
-        system.load_object(line)
+        if line == '//enemy':
+            started_enemies = True
+        elif line == '':
+            continue
+        elif started_enemies:
+            type, x, y, angle, speed_x, speed_y = line.split(', ')
+            print(type, x, y, angle, speed_x, speed_y)
+            system.enemies.append(Enemy(
+                system.all_view_sprites,
+                type,
+                int(x),
+                int(y),
+                angle=int(angle),
+                speed_x=int(speed_x),
+                speed_y=int(speed_y),
+            ))
+        else:
+            system.load_object(line)
 
     hero_x, hero_y, hero_angle, hero_speed_x, hero_speed_y = tuple(file[3].split(', '))
     system.hero = Spaceship(system.all_view_sprites,

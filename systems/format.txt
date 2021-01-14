@@ -9,3 +9,6 @@ type, x, y, radius, mass, (speed_x), (speed_y), filename, atmosphere_height
 ...
 ...
 type, x, y, radius, mass, (speed_x), (speed_y), filename, atmosphere_height
+
+враги пишутся тут и начинаютсяс //enemy
+type(name_of_picture), x, y, angle, speed_x, speed_y, rotation_speed, collision_radius

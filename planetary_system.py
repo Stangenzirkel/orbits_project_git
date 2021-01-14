@@ -42,6 +42,8 @@ class PlanetarySystem:
         self.create_stars()
         self.simulation_points = []
 
+        self.enemies = []
+
     def update(self):
         self.surface.fill('black')
         if self.hero.destroyed:
