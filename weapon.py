@@ -41,6 +41,8 @@ class Bullet(pygame.sprite.Sprite):
         self.image = self.or_image
         self.rect = self.image.get_rect()
 
+        self.damage = 1
+
         pygame.sprite.Sprite.__init__(self, group)
 
     def destroy(self):
@@ -67,16 +69,16 @@ class Bullet(pygame.sprite.Sprite):
         self.image = pygame.transform.rotate(image, angle)
         return origin
 
-    def update(self, surface, objects, hero, game_speed, map_mode):
+    def update(self, system):
         self.timer += 1
         if self.timer > self.life_span:
             self.destroy()
 
         else:
-            self.x += self.speed_x / FPS * game_speed
-            self.y += self.speed_y / FPS * game_speed
+            self.x += self.speed_x / FPS * system.game_speed
+            self.y += self.speed_y / FPS * system.game_speed
 
-            self.render(surface, hero, map_mode)
+            self.render(system.surface, system.hero, system.map_mode)
 
     def render(self, surface, hero, map_mode):
         if not map_mode:
@@ -86,7 +88,7 @@ class Bullet(pygame.sprite.Sprite):
                                                        self.angle - 90, self.or_image)
 
         else:
-            self.rect.x, self.rect.y = -100, -100
+            self.rect.x, self.rect.y = -100, -1003
 
 
 # high-damage bullet with physic
@@ -110,19 +112,23 @@ class Shell(PhysicalObject, Bullet):
         PhysicalObject.__init__(self, x, y, speed_x=speed_x, speed_y=speed_y)
         Bullet.__init__(self, group, x, y, angle, speed, speed_x, speed_y, collision_radius, life_span)
 
-    def update(self, surface, objects, hero, game_speed, map_mode):
+        self.damage = 20
+
+    def update(self, system):
         self.timer += 1
         if self.timer > self.life_span:
             self.destroy()
 
         else:
-            self.physical_move(game_speed, planets=objects)
+            self.physical_move(system.game_speed, planets=system.objects)
 
-        self.render(surface, hero, map_mode)
+        self.render(system.surface, system.hero, system.map_mode)
 
 
 class Weapon:
     def __init__(self,
+                 image,
+                 bullet_image,
                  collision_radius=1,
                  life_span=1200,
                  special=False,
@@ -130,9 +136,7 @@ class Weapon:
                  reload_time=100,
                  cooldown=4,
                  bullet=Bullet,
-                 bullet_speed=60,
-                 image='cannon_sprite_2.png',
-                 bullet_image='shell.png'):
+                 bullet_speed=60):
         self.collision_radius = collision_radius
         self.life_span = life_span
         self.special = special
@@ -149,8 +153,9 @@ class Weapon:
         self.cooldown = cooldown
         self.cooldown_timer = cooldown
 
-        self.image = load_image(image, -1)
-        self.image = pygame.transform.scale(self.image, (120, 180))
+        if image:
+            self.image = load_image(image, -1)
+            self.image = pygame.transform.scale(self.image, (120, 180))
 
         self.bullet_image = load_image(bullet_image, -1)
         self.bullet_image = pygame.transform.scale(self.bullet_image, (20, 180 // magazine_size))
@@ -168,8 +173,6 @@ class Weapon:
                 self.group is not None and \
                 self.magazine_filling > 0 and \
                 self.cooldown_timer == self.cooldown:
-
-            print(self)
             self.bullet(
                 self.group,
                 self.owner.x,
@@ -177,14 +180,12 @@ class Weapon:
                 self.owner.angle,
                 self.bullet_speed,
                 speed_x=self.owner.speed_x,
-                speed_y=self.owner.speed_y
+                speed_y=self.owner.speed_y,
+                life_span=self.life_span
             )
 
             self.magazine_filling -= 1
             self.cooldown_timer = 0
-
-        elif self.cooldown_timer != self.cooldown:
-            print('cooldown')
 
         elif self.owner is None:
             print(self, '*Weapon* no owner')

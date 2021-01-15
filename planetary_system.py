@@ -31,6 +31,7 @@ class PlanetarySystem:
         self.surface = pygame.Surface(size)
 
         self.all_view_sprites = pygame.sprite.Group()
+        self.bullets = pygame.sprite.Group()
         self.map_mode = False
         pygame.mouse.set_visible(False)
 
@@ -60,7 +61,11 @@ class PlanetarySystem:
             self.draw_stars()
 
         self.all_view_sprites.draw(self.surface)
-        self.all_view_sprites.update(self.surface, self.objects, self.hero, self.game_speed, self.map_mode)
+        self.all_view_sprites.update(self)
+
+        self.bullets.draw(self.surface)
+        self.bullets.update(self)
+
         self.hero.draw_interface(self.surface)
         self.surface.blit(self.hero.interface_surface, (0, 0))
 
@@ -91,6 +96,16 @@ class PlanetarySystem:
                                      int(line[4]),
                                      str(line[7]),
                                      int(line[8])))
+
+        elif line[0] == 'enemy':
+            self.objects.append(Enemy(self,
+                                      int(line[1]),
+                                      int(line[2]),
+                                      int(line[3]),
+                                      float(line[4]),
+                                      float(line[5]),
+                                      orbit_parent=self.objects[int(line[6])],
+                                      hp=int(line[7])))
 
     def draw_cursor(self, rect_size=10):
         pygame.draw.rect(self.surface, 'green', (pygame.mouse.get_pos()[0] - rect_size // 2,
@@ -167,7 +182,7 @@ class PlanetarySystem:
         for step in range(2500):
             counter = (counter + 1) % 10
             for object in simulation_objects:
-                if type(object.parent) == Spaceship:
+                if type(object.parent) == Spaceship or type(object.parent) == Enemy:
                     if not counter:
                         points.append((self.surface.get_width() // 2 + object.x / MAP_SIZE,
                                        self.surface.get_height() // 2 + object.y / MAP_SIZE))
@@ -210,6 +225,9 @@ class PhysicalObject:
 
     def physical_move(self, game_speed, a_x=0, a_y=0, planets=[]):
         for planet in planets:
+            if type(planet) != Planet and type(planet) != Moon and type(planet) != VirtualObject:
+                continue
+
             if planet.mass != 0:
                 a = self.calclulate_acceleration_for_obj(planet)
                 a_x += a[0]
@@ -301,12 +319,11 @@ class EngineObject:
 
 
 class Spaceship(pygame.sprite.Sprite, PhysicalObject, EngineObject):
-    def __init__(self, group, name, x, y, angle=0, speed_x=0, speed_y=0, rotation_speed=1, collision_radius=10):
+    def __init__(self, group, x, y, angle, speed_x, speed_y, rotation_speed=1, collision_radius=10):
         pygame.sprite.Sprite.__init__(self, group)
         PhysicalObject.__init__(self, x, y, speed_x=speed_x, speed_y=speed_y)
         EngineObject.__init__(self, angle, begin_color=(0, 255, 250))
 
-        self.name = name
         self.or_image = load_image("spaceship.png", -1)
         self.or_image = pygame.transform.scale(self.or_image, (40, 40))
 
@@ -322,6 +339,7 @@ class Spaceship(pygame.sprite.Sprite, PhysicalObject, EngineObject):
         self.destroyed = None
         self.weapons = dict()
         self.interface_surface = pygame.surface.Surface((0, 0))
+        self.hp = 30
 
     def fire(self, id):
         self.weapons[id].fire()
@@ -330,15 +348,24 @@ class Spaceship(pygame.sprite.Sprite, PhysicalObject, EngineObject):
         self.weapons[id] = weapon
         self.weapons[id].set_owner(self)
 
-    def update(self, surface, objects, hero, game_speed, map_mode):
+    def update(self, system):
         if not self.destroyed:
+            dmg = pygame.sprite.spritecollideany(self, system.bullets)
+            if dmg and dmg.timer > 30:
+                self.hp -= dmg.damage
+                dmg.destroy()
+
+            if self.hp <= 0:
+                self.destroyed = True
+                return None
+
             a_x = 0
             a_y = 0
 
             keys = pygame.key.get_pressed()
 
             if keys[pygame.K_SPACE]:
-                a_x, a_y = self.engine_on(game_speed)
+                a_x, a_y = self.engine_on(system.game_speed)
 
             if keys[pygame.K_RIGHT]:
                 self.angle = (self.angle + self.rotation_speed) % 360
@@ -352,9 +379,9 @@ class Spaceship(pygame.sprite.Sprite, PhysicalObject, EngineObject):
             if keys[pygame.K_g]:
                 self.fire(2)
 
-            self.physical_move(game_speed, a_x=a_x, a_y=a_y, planets=objects)
+            self.physical_move(system.game_speed, a_x=a_x, a_y=a_y, planets=system.objects)
 
-            for object in objects:
+            for object in system.objects:
                 if type(object) == Planet or type(object) == Moon:
                     self.collision_with_planet(object)
 
@@ -362,11 +389,11 @@ class Spaceship(pygame.sprite.Sprite, PhysicalObject, EngineObject):
             self.x = self.destroyed[0].x + self.destroyed[1]
             self.y = self.destroyed[0].y + self.destroyed[2]
 
-        if not map_mode:
-            self.render_on_view(surface)
+        if not system.map_mode:
+            self.render_on_view(system.surface)
 
         else:
-            self.render_on_map(surface)
+            self.render_on_map(system.surface)
 
         for key in self.weapons.keys():
             self.weapons[key].update()
@@ -407,11 +434,10 @@ class Spaceship(pygame.sprite.Sprite, PhysicalObject, EngineObject):
         return origin
 
     def collision_with_planet(self, planet):
-        global game_speed
         delta_x = self.x - planet.x
         delta_y = self.y - planet.y
         distanse = (delta_x ** 2 + delta_y ** 2) ** 0.5
-        if distanse < self.collision_radius + planet.radius - planet.atmosphere_height // 2:
+        if distanse < self.collision_radius + planet.radius:
             self.destroyed = planet, delta_x, delta_y
             self.marker_on = False
 
@@ -436,6 +462,9 @@ class Spaceship(pygame.sprite.Sprite, PhysicalObject, EngineObject):
                                  (self.interface_surface.get_width() - (i + 1) * 140 + 100,
                                   self.interface_surface.get_height() - 240 + j * weapon.bullet_image.get_height()))
 
+        for i in range(self.hp):
+            pygame.draw.rect(self.interface_surface, 'white', (20 + i * 10, 20, 8, 20))
+
 
 class Planet(pygame.sprite.Sprite):
     def __init__(self, group, x, y, radius, mass, filename, atmosphere_height):
@@ -457,12 +486,12 @@ class Planet(pygame.sprite.Sprite):
         self.image = self.or_image
         self.rect = self.image.get_rect()
 
-    def update(self, surface, objects, hero, game_speed, map_mode):
-        if not map_mode:
-            self.render_on_view(surface, hero)
+    def update(self, system):
+        if not system.map_mode:
+            self.render_on_view(system.surface, system.hero)
 
         else:
-            self.render_on_map(surface)
+            self.render_on_map(system.surface)
 
     def render_on_view(self, surface, hero):
         self.image = self.or_image
@@ -496,14 +525,14 @@ class Moon(Planet, PhysicalObject):
         Planet.__init__(self, group, x, y, radius, mass, filename, atmosphere_height)
         PhysicalObject.__init__(self, x, y, speed_x, speed_y)
 
-    def update(self, surface, objects, hero, game_speed, map_mode):
-        if not map_mode:
-            self.render_on_view(surface, hero)
+    def update(self, system):
+        if not system.map_mode:
+            self.render_on_view(system.surface, system.hero)
 
         else:
-            self.render_on_map(surface)
+            self.render_on_map(system.surface)
 
-        self.physical_move(game_speed, planets=[objects[0]])
+        self.physical_move(system.game_speed, planets=[system.objects[0]])
 
 
 class VirtualObject(PhysicalObject):
@@ -518,7 +547,7 @@ class VirtualObject(PhysicalObject):
         else:
             self.speed_x, self.speed_y = parent.speed_x, parent.speed_y
 
-        if type(parent) == Spaceship:
+        if type(parent) == Spaceship or type(parent) == Enemy:
             self.mass = 0
 
         else:
@@ -529,3 +558,120 @@ class VirtualObject(PhysicalObject):
     def move(self, simulation_step, simulation_objects):
         if type(self.parent) != Planet:
             self.physical_move(simulation_step, planets=simulation_objects)
+
+
+from weapon import Bullet, Shell, Weapon
+
+
+class Enemy(pygame.sprite.Sprite, PhysicalObject):
+    def __init__(self, system, x, y, angle, speed_x, speed_y, rotation_speed=1, orbit_parent=None, hp=50):
+        pygame.sprite.Sprite.__init__(self, system.all_view_sprites)
+        PhysicalObject.__init__(self, x, y, speed_x=speed_x, speed_y=speed_y)
+
+        self.angle = angle
+
+        self.or_image = load_image("spaceship.png", -1)
+        self.or_image = pygame.transform.scale(self.or_image, (40, 40))
+
+        self.or_map_image = load_image("spaceship_on_map.png", -1)
+        self.or_map_image = pygame.transform.scale(self.or_map_image, (20, 20))
+
+        self.rect = self.or_image.get_rect()
+        self.image = self.or_image
+
+        self.rect.x, self.rect.y = self.blitRotate((self.x, self.y), (20, 20), self.angle, self.or_image)
+        self.rotation_speed = rotation_speed
+        self.orbit_parent = orbit_parent
+        self.hp = hp
+
+        self.weapon = Weapon('minigun_sprite.png', 'shell.png', life_span=500,
+                             magazine_size=60,
+                             reload_time=1,
+                             bullet_speed=100,
+                             cooldown=40)
+        self.weapon.set_owner(self)
+        self.weapon.set_group(system.bullets)
+
+        self.interface_surface = pygame.surface.Surface((0, 0))
+
+    def fire(self):
+        self.weapon.fire()
+
+    def destroy(self):
+        self.kill()
+        del self
+
+    def update(self, system):
+        dmg = pygame.sprite.spritecollideany(self, system.bullets)
+        if dmg and dmg.timer > 30:
+            self.hp -= dmg.damage
+            dmg.destroy()
+
+        if self.hp <= 0:
+            self.destroy()
+
+        if not system.map_mode:
+            self.render_on_view(system.surface, system.hero)
+
+        else:
+            self.render_on_map(system.surface)
+
+        if self.hero_distanse(system.hero) < 1000:
+            if (self.angle + self.hero_angle(system.hero)) % 360 < 180:
+                self.angle = (self.angle - self.rotation_speed) % 360
+
+            else:
+                self.angle = (self.angle + self.rotation_speed) % 360
+
+        if self.hero_distanse(system.hero) < 500 and -20 < (self.angle + self.hero_angle(system.hero)) % 360 < 20:
+            self.fire()
+
+        if self.orbit_parent:
+            self.physical_move(system.game_speed, planets=[self.orbit_parent])
+
+        else:
+            self.physical_move(system.game_speed, planets=system.objects)
+
+        if self.weapon:
+            self.weapon.update()
+
+    def render_on_view(self, surface, hero):
+        self.rect.x, self.rect.y = self.blitRotate((self.x - hero.x + surface.get_width() // 2,
+                                                    self.y - hero.y + surface.get_height() // 2),
+                                                   (20, 20), self.angle, self.or_image)
+
+    def render_on_map(self, surface):
+        self.rect.x, self.rect.y = self.blitRotate((surface.get_width() // 2 + self.x / MAP_SIZE,
+                                                    surface.get_height() // 2 + self.y / MAP_SIZE),
+                                                   (10, 10), self.angle + 45, self.or_map_image)
+
+    def hero_distanse(self, hero):
+        return int((hero.x - self.x) ** 2 + (hero.y - self.y) ** 2) ** 0.5
+
+    def hero_angle(self, hero):
+        hero_pos_angle = -math.degrees(math.atan2((hero.y - self.y), (hero.x - self.x)))
+        return hero_pos_angle
+
+    def blitRotate(self, pos, originPos, angle, image):
+        angle = - angle - 90
+        # calcaulate the axis aligned bounding box of the rotated image
+        w, h = image.get_size()
+        box = [pygame.math.Vector2(p) for p in [(0, 0), (w, 0), (w, -h), (0, -h)]]
+        box_rotate = [p.rotate(angle) for p in box]
+        min_box = (min(box_rotate, key=lambda p: p[0])[0], min(box_rotate, key=lambda p: p[1])[1])
+        max_box = (max(box_rotate, key=lambda p: p[0])[0], max(box_rotate, key=lambda p: p[1])[1])
+
+        # calculate the translation of the pivot
+        pivot = pygame.math.Vector2(originPos[0], -originPos[1])
+        pivot_rotate = pivot.rotate(angle)
+        pivot_move = pivot_rotate - pivot
+
+        # calculate the upper left origin of the rotated image
+        origin = (
+            pos[0] - originPos[0] + min_box[0] - pivot_move[0], pos[1] - originPos[1] - max_box[1] + pivot_move[1])
+
+        # get a rotated image
+        self.image = pygame.transform.rotate(image, angle)
+
+        return origin
+

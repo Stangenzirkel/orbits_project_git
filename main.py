@@ -48,19 +48,18 @@ def load_system(name):
 
     hero_x, hero_y, hero_angle, hero_speed_x, hero_speed_y = tuple(file[3].split(', '))
     system.hero = Spaceship(system.all_view_sprites,
-                            '--Name--',
                             int(hero_x),
                             int(hero_y),
-                            angle=int(hero_angle),
-                            speed_x=float(hero_speed_x),
-                            speed_y=float(hero_speed_y))
+                            int(hero_angle),
+                            float(hero_speed_x),
+                            float(hero_speed_y))
 
     first_weapon = copy.copy(minigun_weapon)
-    first_weapon.set_group(system.all_view_sprites)
+    first_weapon.set_group(system.bullets)
     system.hero.add_weapon(first_weapon, 1)
 
     second_weapon = copy.copy(cannon_weapon)
-    second_weapon.set_group(system.all_view_sprites)
+    second_weapon.set_group(system.bullets)
     system.hero.add_weapon(second_weapon, 2)
     systems[id] = system
 
@@ -69,7 +68,7 @@ infoObject = pygame.display.Info()
 window_size = (infoObject.current_w, infoObject.current_h)
 screen = pygame.display.set_mode(window_size)
 font = pygame.font.Font(None, 80)
-text = font.render("Now loading", True, (100, 255, 100))
+text = font.render("Now loading", False , (100, 255, 100))
 text_x = infoObject.current_w // 2 - text.get_width() // 2
 text_y = infoObject.current_h // 2 - text.get_height() // 2
 text_w = text.get_width()
@@ -81,8 +80,8 @@ systems = dict()
 interplanetary_map = InterplanetaryMap(window_size)
 star = StarOnMap(interplanetary_map, 'HR 8799')
 
-cannon_weapon = Weapon(bullet=Shell)
-minigun_weapon = Weapon(life_span=50, magazine_size=60, reload_time=24, bullet_speed=500, image='minigun_sprite.png')
+cannon_weapon = Weapon('cannon_sprite_2.png', 'shell.png', bullet=Shell, bullet_speed=600, life_span=300)
+minigun_weapon = Weapon('minigun_sprite.png', 'shell.png', life_span=500, magazine_size=60, reload_time=24, bullet_speed=300)
 
 for name in files:
     load_system(name)
