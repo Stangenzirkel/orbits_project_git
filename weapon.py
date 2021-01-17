@@ -20,7 +20,7 @@ def load_image(name, color_key=None):
 
 
 class Bullet(pygame.sprite.Sprite):
-    def __init__(self, group, x, y, angle, speed, speed_x=0, speed_y=0, collision_radius=1, life_span=1200):
+    def __init__(self, group, x, y, angle, speed, speed_x=0, speed_y=0, life_span=1200):
         a_x = speed * math.cos(math.radians(angle))
         a_y = speed * math.sin(math.radians(angle))
         speed_x += a_x
@@ -34,7 +34,6 @@ class Bullet(pygame.sprite.Sprite):
         self.or_image = load_image("bullet.png", -1)
         self.or_image = pygame.transform.scale(self.or_image, (20, 20))
 
-        self.collision_radius = collision_radius
         self.life_span = life_span
         self.timer = 0
         self.angle = angle
@@ -42,6 +41,7 @@ class Bullet(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
 
         self.damage = 1
+        self.spawn_no_damage = 30
 
         pygame.sprite.Sprite.__init__(self, group)
 
@@ -84,35 +84,32 @@ class Bullet(pygame.sprite.Sprite):
         if not map_mode:
             x, y = self.x - hero.x + surface.get_width() // 2, \
                    self.y - hero.y + surface.get_height() // 2
-            self.rect.x, self.rect.y = self.blitRotate((x, y), (10, 10),
+            self.rect.x, self.rect.y = self.blitRotate((x, y), (self.rect.width // 2, self.rect.height // 2),
                                                        self.angle - 90, self.or_image)
 
         else:
-            self.rect.x, self.rect.y = -100, -1003
+            self.rect.x, self.rect.y = -100, -100
 
 
 # high-damage bullet with physic
 class Shell(PhysicalObject, Bullet):
-    def __init__(self, group, x, y, angle, speed, speed_x=0, speed_y=0, collision_radius=1, life_span=1200):
+    def __init__(self, group, x, y, angle, speed, speed_x=0, speed_y=0, life_span=1200):
         a_x = speed * math.cos(math.radians(angle))
         a_y = speed * math.sin(math.radians(angle))
         speed_x += a_x
         speed_y += a_y
 
-        self.or_image = load_image("bullet.png", -1)
-        self.or_image = pygame.transform.scale(self.or_image, (20, 20))
+        PhysicalObject.__init__(self, x, y, speed_x=speed_x, speed_y=speed_y)
+        Bullet.__init__(self, group, x, y, angle, speed, speed_x, speed_y, life_span)
 
-        self.collision_radius = collision_radius
-        self.life_span = life_span
-        self.timer = 0
-        self.angle = angle
+        self.or_image = load_image("bullet.png", -1)
+        self.or_image = pygame.transform.scale(self.or_image, (40, 40))
+
         self.image = self.or_image
         self.rect = self.image.get_rect()
 
-        PhysicalObject.__init__(self, x, y, speed_x=speed_x, speed_y=speed_y)
-        Bullet.__init__(self, group, x, y, angle, speed, speed_x, speed_y, collision_radius, life_span)
-
         self.damage = 20
+        self.spawn_no_damage = 1
 
     def update(self, system):
         self.timer += 1

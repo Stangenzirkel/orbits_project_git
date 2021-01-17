@@ -43,8 +43,22 @@ class PlanetarySystem:
         self.create_stars()
         self.simulation_points = []
 
+        self.enemies_counter = 0
+        self.win = False
+
+        self.time_counter = 0
+
     def update(self):
         self.surface.fill('black')
+        if self.win:
+            self.surface.blit(self.background, (0, 0))
+            self.surface.blit(self.font.render('all enemies destroyed', True, 'green'), (20, 20))
+            self.surface.blit(self.font.render('all systems nominal', True, 'green'), (20, 45))
+            self.surface.blit(self.font.render('your time: ' + str(self.time_counter), True, 'green'), (20, 70))
+            self.draw_cursor()
+
+            return None
+
         if self.hero.destroyed:
             self.surface.blit(self.background, (0, 0))
             self.surface.blit(self.font.render('no signal', True, 'green'), (20, 20))
@@ -66,7 +80,7 @@ class PlanetarySystem:
         self.bullets.draw(self.surface)
         self.bullets.update(self)
 
-        self.hero.draw_interface(self.surface)
+        self.hero.draw_interface(self)
         self.surface.blit(self.hero.interface_surface, (0, 0))
 
         if self.map_mode:
@@ -74,6 +88,11 @@ class PlanetarySystem:
             self.draw_cursor()
             for point in self.simulation_points:
                 pygame.draw.circle(self.surface, (0, 100, 0), point, 1)
+
+        if self.enemies_counter == 0:
+            self.win = True
+
+        self.time_counter += self.game_speed
 
     def load_object(self, line):
         line = line.split(', ')
@@ -349,7 +368,7 @@ class Spaceship(pygame.sprite.Sprite, PhysicalObject, EngineObject):
         self.weapons[id].set_owner(self)
 
     def update(self, system):
-        if not self.destroyed:
+        if not self.destroyed and not system.win:
             dmg = pygame.sprite.spritecollideany(self, system.bullets)
             if dmg and dmg.timer > 30:
                 self.hp -= dmg.damage
@@ -385,7 +404,7 @@ class Spaceship(pygame.sprite.Sprite, PhysicalObject, EngineObject):
                 if type(object) == Planet or type(object) == Moon:
                     self.collision_with_planet(object)
 
-        else:
+        elif self.destroyed:
             self.x = self.destroyed[0].x + self.destroyed[1]
             self.y = self.destroyed[0].y + self.destroyed[2]
 
@@ -441,8 +460,8 @@ class Spaceship(pygame.sprite.Sprite, PhysicalObject, EngineObject):
             self.destroyed = planet, delta_x, delta_y
             self.marker_on = False
 
-    def draw_interface(self, surface):
-        self.interface_surface = pygame.surface.Surface(surface.get_size(), pygame.SRCALPHA, 32)
+    def draw_interface(self, system):
+        self.interface_surface = pygame.surface.Surface(system.surface.get_size(), pygame.SRCALPHA, 32)
         self.interface_surface.fill((0, 0, 0, 0))
 
         for i, key in enumerate(self.weapons.keys()):
@@ -464,6 +483,9 @@ class Spaceship(pygame.sprite.Sprite, PhysicalObject, EngineObject):
 
         for i in range(self.hp):
             pygame.draw.rect(self.interface_surface, 'white', (20 + i * 10, 20, 8, 20))
+
+        for i in range(system.enemies_counter):
+            pygame.draw.rect(self.interface_surface, 'white', (20 + i * 10, 42, 8, 20))
 
 
 class Planet(pygame.sprite.Sprite):
@@ -593,22 +615,24 @@ class Enemy(pygame.sprite.Sprite, PhysicalObject):
         self.weapon.set_group(system.bullets)
 
         self.interface_surface = pygame.surface.Surface((0, 0))
+        system.enemies_counter += 1
 
     def fire(self):
         self.weapon.fire()
 
-    def destroy(self):
+    def destroy(self, system):
+        system.enemies_counter -= 1
         self.kill()
         del self
 
     def update(self, system):
         dmg = pygame.sprite.spritecollideany(self, system.bullets)
-        if dmg and dmg.timer > 30:
+        if dmg and dmg.timer > dmg.spawn_no_damage:
             self.hp -= dmg.damage
             dmg.destroy()
 
         if self.hp <= 0:
-            self.destroy()
+            self.destroy(system)
 
         if not system.map_mode:
             self.render_on_view(system.surface, system.hero)

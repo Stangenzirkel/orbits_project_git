@@ -6,47 +6,34 @@ from interplanetary_map import InterplanetaryMap, PhysicalObjectOnMap, HeroOnMap
 from weapon import Bullet, Shell, Weapon
 
 FPS = 60
-files = ['omicron.txt', 'phi.txt', 'theta.txt', 'tau.txt']
+files = {1: 'omicron.txt', 2: 'phi.txt', 3: 'theta.txt', 4: 'tau.txt'}
 
 pygame.init()
 pygame.mouse.set_visible(False)
 
 
-def load_image(name, color_key=None):
-    fullname = os.path.join('data', name)
-    image = pygame.image.load(fullname).convert()
-
-    if color_key is not None:
-        if color_key == -1:
-            color_key = image.get_at((0, 0))
-        image.set_colorkey(color_key)
-    else:
-        image = image.convert_alpha()
-
-    return image
-
-
-def load_system(name):
+def load_system(id, new=True):
+    name = files[id]
     fullname = os.path.join('systems', name)
     file = open(fullname, 'r').read().split('\n')
-    id = int(file[0])
-    system_name = file[1]
-    map_start_height, map_speed, map_apsis_argument, map_radius, map_mass = tuple(file[2].split(', '))
-    PlanetOnMap(interplanetary_map,
-                system_name,
-                int(id),
-                float(map_start_height),
-                float(map_speed),
-                star,
-                float(map_apsis_argument),
-                radius=int(map_radius),
-                mass=int(map_mass))
+    system_name = file[0]
+    map_start_height, map_speed, map_apsis_argument, map_radius, map_mass = tuple(file[1].split(', '))
+    if new:
+        PlanetOnMap(interplanetary_map,
+                    system_name,
+                    int(id),
+                    float(map_start_height),
+                    float(map_speed),
+                    star,
+                    float(map_apsis_argument),
+                    radius=int(map_radius),
+                    mass=int(map_mass))
 
     system = PlanetarySystem(id, window_size)
-    for line in file[4:len(file)]:
+    for line in file[3:len(file)]:
         system.load_object(line)
 
-    hero_x, hero_y, hero_angle, hero_speed_x, hero_speed_y = tuple(file[3].split(', '))
+    hero_x, hero_y, hero_angle, hero_speed_x, hero_speed_y = tuple(file[2].split(', '))
     system.hero = Spaceship(system.all_view_sprites,
                             int(hero_x),
                             int(hero_y),
@@ -83,11 +70,11 @@ star = StarOnMap(interplanetary_map, 'HR 8799')
 cannon_weapon = Weapon('cannon_sprite_2.png', 'shell.png', bullet=Shell, bullet_speed=600, life_span=300)
 minigun_weapon = Weapon('minigun_sprite.png', 'shell.png', life_span=500, magazine_size=60, reload_time=24, bullet_speed=300)
 
-for name in files:
-    load_system(name)
+for key in files.keys():
+    load_system(key)
 
 hero = HeroOnMap(interplanetary_map, interplanetary_map.objects[-1])
-interplanetary_map_mode = False
+interplanetary_map_mode = True
 current_system = systems[interplanetary_map.hero.planet.id]
 
 running = True
@@ -114,9 +101,12 @@ while running:
                 current_system.update()
                 screen.blit(current_system.surface, (0, 0))
 
-        if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_ESCAPE:
-                running = False
+        elif event.type == pygame.KEYDOWN and (current_system.hero.destroyed or current_system.win):
+            interplanetary_map_mode = True
+            load_system(current_system.id, new=False)
+            current_system = systems[current_system.id]
+
+        elif event.type == pygame.KEYDOWN and not current_system.hero.destroyed and not current_system.win:
             if not interplanetary_map_mode:
                 # time speed changing
                 if event.key == pygame.K_RIGHTBRACKET and \
@@ -141,7 +131,14 @@ while running:
                 current_system.simulation()
 
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == pygame.BUTTON_LEFT and interplanetary_map_mode:
-            interplanetary_map.click_object(event.pos)
+            cmd = interplanetary_map.click_object(event.pos)
+            if cmd == 3:
+                running = False
+
+            elif cmd == 1 and not interplanetary_map.hero.in_travel:
+                load_system(current_system.id, new=False)
+                current_system = systems[current_system.id]
+
             current_system = systems[interplanetary_map.hero.planet.id]
     pygame.display.flip()
 pygame.quit()

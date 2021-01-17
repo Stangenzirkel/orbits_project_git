@@ -14,7 +14,14 @@ class InterplanetaryMap:
         self.labels = dict()
         self.font = pygame.font.SysFont(None, 20)
         self.objects = []
+        self.buttons = []
         self.hero = None
+
+        self.btn_1 = Button(size[0] - 120, 20, 100, 20, 'Начать заново', 1)
+        self.btn_2 = Button(size[0] - 120, 42, 100, 20, 'Рекорды', None)
+        self.btn_3 = Button(size[0] - 120, 64, 100, 20, 'Выход', 3)
+
+        self.buttons = [self.btn_1, self.btn_2, self.btn_3]
 
     def draw_cursor(self, rect_size=10):
         pygame.draw.rect(self.map_surface, 'green', (pygame.mouse.get_pos()[0] - rect_size // 2,
@@ -73,6 +80,9 @@ class InterplanetaryMap:
             object.update()
             object.render()
 
+        for button in self.buttons:
+            self.map_surface.blit(button.surface, (button.x, button.y))
+
         if self.hero:
            self.hero.render()
 
@@ -96,9 +106,14 @@ class InterplanetaryMap:
         return self.map_surface
 
     def click_object(self, pos):
+        for button in self.buttons:
+            if button.x < pos[0] < button.x + button.width and button.y < pos[1] < button.y + button.height:
+                return button.cmd
+
         for object in self.objects:
             if ((pos[0] - object.x) ** 2 + (pos[1] - object.y) ** 2) ** 0.5 <= object.radius + 5:
                 self.hero.launch(object)
+                return None
 
         return None
 
@@ -298,3 +313,22 @@ class HeroOnMap:
             self.particle_counter = (self.particle_counter + 1) % (10 // a)
             if not self.particle_counter:
                 self.particles.append((self.x - 1, self.y - 1, 2, 2))
+
+
+class Button:
+    def __init__(self, x, y, width, heigth, label, cmd):
+        self.x = x
+        self.y = y
+        self.width = width
+        self.height = heigth
+        self.surface = pygame.surface.Surface((width, heigth), pygame.SRCALPHA, 32)
+        self.surface.fill((0, 0, 0, 0))
+        pygame.draw.rect(self.surface, 'green', (0, 0, width, heigth), 1)
+
+        font = pygame.font.SysFont(None, 20)
+        text = font.render(label, False, (100, 255, 100))
+        text_x = width // 2 - text.get_width() // 2
+        text_y = heigth // 2 - text.get_height() // 2
+        self.surface.blit(text, (text_x, text_y))
+        self.cmd = cmd
+
