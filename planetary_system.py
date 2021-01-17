@@ -57,13 +57,13 @@ class PlanetarySystem:
         if self.win:
             self.surface.blit(self.background, (0, 0))
             self.surface.blit(self.font.render('all enemies destroyed', True, 'green'), (20, 20))
-            self.surface.blit(self.font.render('all systems nominal', True, 'green'), (20, 45))
             self.surface.blit(self.font.render('your time: ' +
                                                str(self.win // 3600) +
                                                ':' +
                                                str((self.win % 3600) // 60) +
                                                ':' + str((self.win % 3600) % 60),
-                                               True, 'green'), (20, 70))
+                                               True, 'green'), (20, 42))
+            self.surface.blit(self.font.render('press any key to continue', True, 'green'), (20, 64))
             self.draw_cursor()
 
             return None
@@ -71,8 +71,9 @@ class PlanetarySystem:
         if self.hero.destroyed:
             self.surface.blit(self.background, (0, 0))
             self.surface.blit(self.font.render('no signal', True, 'green'), (20, 20))
-            self.surface.blit(self.font.render('transmitter not responding', True, 'green'), (20, 45))
-            self.surface.blit(self.font.render('reboot failed', True, 'green'), (20, 70))
+            self.surface.blit(self.font.render('transmitter not responding', True, 'green'), (20, 42))
+            self.surface.blit(self.font.render('reboot failed', True, 'green'), (20, 64))
+            self.surface.blit(self.font.render('press any key to continue', True, 'green'), (20, 86))
             self.draw_cursor()
 
             return None

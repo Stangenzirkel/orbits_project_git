@@ -41,7 +41,7 @@ class Bullet(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
 
         self.damage = 1
-        self.spawn_no_damage = 30
+        self.spawn_no_damage = int(40 / speed * 60)
 
         pygame.sprite.Sprite.__init__(self, group)
 
@@ -103,7 +103,7 @@ class Shell(PhysicalObject, Bullet):
         Bullet.__init__(self, group, x, y, angle, speed, speed_x, speed_y, life_span)
 
         self.or_image = load_image("bullet.png", -1)
-        self.or_image = pygame.transform.scale(self.or_image, (40, 40))
+        self.or_image = pygame.transform.scale(self.or_image, (40, 20))
 
         self.image = self.or_image
         self.rect = self.image.get_rect()
