@@ -3,10 +3,13 @@ import math
 import os
 import copy
 import random
+import datetime as dt
+import sqlite3
 
 GRAVITY = 100
 FPS = 60
 MAP_SIZE = 100
+con = sqlite3.connect("game_database.db")
 
 
 def load_image(name, color_key=None):
@@ -44,9 +47,10 @@ class PlanetarySystem:
         self.simulation_points = []
 
         self.enemies_counter = 0
-        self.win = False
+        self.win = 0
 
         self.time_counter = 0
+        self.start_datetime = dt.datetime.now().timestamp()
 
     def update(self):
         self.surface.fill('black')
@@ -54,7 +58,12 @@ class PlanetarySystem:
             self.surface.blit(self.background, (0, 0))
             self.surface.blit(self.font.render('all enemies destroyed', True, 'green'), (20, 20))
             self.surface.blit(self.font.render('all systems nominal', True, 'green'), (20, 45))
-            self.surface.blit(self.font.render('your time: ' + str(self.time_counter), True, 'green'), (20, 70))
+            self.surface.blit(self.font.render('your time: ' +
+                                               str(self.win // 3600) +
+                                               ':' +
+                                               str((self.win % 3600) // 60) +
+                                               ':' + str((self.win % 3600) % 60),
+                                               True, 'green'), (20, 70))
             self.draw_cursor()
 
             return None
@@ -90,7 +99,14 @@ class PlanetarySystem:
                 pygame.draw.circle(self.surface, (0, 100, 0), point, 1)
 
         if self.enemies_counter == 0:
-            self.win = True
+            self.win = self.time_counter // FPS
+            req = """
+                  INSERT INTO records (start_time, game_time, planet_id)
+                  VALUES(?,?,?)
+                  """
+
+            con.execute(req, (str(int(self.start_datetime)), str(self.win), str(self.id)))
+            con.commit()
 
         self.time_counter += self.game_speed
 

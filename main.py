@@ -4,6 +4,7 @@ import copy
 from planetary_system import PhysicalObject, Spaceship, Planet, Moon, PlanetarySystem
 from interplanetary_map import InterplanetaryMap, PhysicalObjectOnMap, HeroOnMap, StarOnMap, PlanetOnMap
 from weapon import Bullet, Shell, Weapon
+import sqlite3
 
 FPS = 60
 files = {1: 'omicron.txt', 2: 'phi.txt', 3: 'theta.txt', 4: 'tau.txt'}

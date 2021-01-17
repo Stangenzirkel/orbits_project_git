@@ -1,10 +1,13 @@
 import pygame
 import math
 import copy
+import sqlite3
+import datetime as dt
 
 MAP_GRAVITY = 6.67
 MAP_GAME_SPEED = 1
 FPS = 60
+con = sqlite3.connect("game_database.db")
 
 
 class InterplanetaryMap:
@@ -18,10 +21,13 @@ class InterplanetaryMap:
         self.hero = None
 
         self.btn_1 = Button(size[0] - 120, 20, 100, 20, 'Начать заново', 1)
-        self.btn_2 = Button(size[0] - 120, 42, 100, 20, 'Рекорды', None)
+        self.btn_2 = Button(size[0] - 120, 42, 100, 20, 'Рекорды', 2)
         self.btn_3 = Button(size[0] - 120, 64, 100, 20, 'Выход', 3)
 
         self.buttons = [self.btn_1, self.btn_2, self.btn_3]
+        self.result = []
+        self.record_surface = pygame.surface.Surface((0, 0))
+        self.show_records = False
 
     def draw_cursor(self, rect_size=10):
         pygame.draw.rect(self.map_surface, 'green', (pygame.mouse.get_pos()[0] - rect_size // 2,
@@ -71,6 +77,9 @@ class InterplanetaryMap:
             self.map_surface.blit(self.font.render('ENGINE power OFF', True, 'green'), (20, 45))
             self.map_surface.blit(self.font.render('hibernation mode OFF', True, 'green'), (20, 70))
 
+        if self.show_records:
+            self.map_surface.blit(self.record_surface, (self.map_surface.get_width() - 220, 100))
+
         self.draw_cursor()
 
         if self.hero.in_travel:
@@ -108,14 +117,46 @@ class InterplanetaryMap:
     def click_object(self, pos):
         for button in self.buttons:
             if button.x < pos[0] < button.x + button.width and button.y < pos[1] < button.y + button.height:
+                if button.cmd == 2 and not self.hero.in_travel:
+                    self.show_records = not self.show_records
+                    if self.show_records:
+                        self.draw_records()
+
                 return button.cmd
 
         for object in self.objects:
             if ((pos[0] - object.x) ** 2 + (pos[1] - object.y) ** 2) ** 0.5 <= object.radius + 5:
+                self.show_records = False
                 self.hero.launch(object)
                 return None
 
         return None
+
+    def draw_records(self):
+        req = """
+                SELECT start_time, game_time
+                FROM records
+                WHERE planet_id = ?
+              """
+
+        cur = con.cursor()
+        self.result = list(cur.execute(req, (str(self.hero.planet.id),)))
+
+        surface = pygame.surface.Surface((300, len(self.result) * 30), pygame.SRCALPHA, 32)
+
+        for i, line in enumerate(sorted(self.result, key=lambda x: int(x[1]))):
+            if i <= 5:
+
+                start_time = dt.datetime.fromtimestamp(int(line[0])).strftime('%d %b %Y %H:%M')
+                game_time = str(int(line[1]) // 3600).rjust(2, '0') +\
+                            ':' +\
+                            str((int(line[1]) % 3600) // 60).rjust(2, '0') +\
+                            ':' +\
+                            str((int(line[1]) % 3600) % 60).rjust(2, '0')
+
+                surface.blit(self.font.render(str(i + 1) + ':  ' + start_time + ' --- ' + game_time, True, 'green'), (0, i * 30))
+
+        self.record_surface = surface
 
 
 # отвечает за движение планет по карте и рисование эллипсов
