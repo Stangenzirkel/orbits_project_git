@@ -126,12 +126,12 @@ class PlanetarySystem:
             self.objects.append(Moon(self.all_view_sprites,
                                      int(line[1]),
                                      int(line[2]),
-                                     float(line[5]),
-                                     float(line[6]),
+                                     self.objects[0],
                                      int(line[3]),
                                      int(line[4]),
-                                     str(line[7]),
-                                     int(line[8])))
+                                     int(line[5]),
+                                     str(line[6]),
+                                     int(line[7])))
 
         elif line[0] == 'enemy':
             self.objects.append(Enemy(self,
@@ -508,8 +508,8 @@ class Spaceship(pygame.sprite.Sprite, PhysicalObject, EngineObject):
 class Planet(pygame.sprite.Sprite):
     def __init__(self, group, x, y, radius, mass, filename, atmosphere_height):
         pygame.sprite.Sprite.__init__(self, group)
-        self.x = x
-        self.y = y
+        self.x, self.y = x, y
+        self.speed_x, self.speed_y = 0, 0
         self.radius = radius
         self.mass = mass
         self.atmosphere_height = atmosphere_height
@@ -560,9 +560,26 @@ class Planet(pygame.sprite.Sprite):
 
 
 class Moon(Planet, PhysicalObject):
-    def __init__(self, group, x, y, speed_x, speed_y, radius, mass, filename, atmosphere_height):
+    def __init__(self, group, start_height, start_speed, orbit_parent, apsis_argument, radius, mass, filename, atmosphere_height):
+        self.start_height = start_height
+        self.start_speed = start_speed
+        self.apsis_argument = apsis_argument
+        self.orbit_parent = orbit_parent
+
+        x, y = self.start_position_calculation()
+        speed_x, speed_y = self.start_speed_calculation()
+
         Planet.__init__(self, group, x, y, radius, mass, filename, atmosphere_height)
         PhysicalObject.__init__(self, x, y, speed_x, speed_y)
+        self.ellipse_surface, self.ellipse_surface_delta = self.draw_ellipse()
+
+    def start_position_calculation(self):
+        return self.start_height * math.cos(math.radians(self.apsis_argument)), \
+               self.start_height * math.sin(math.radians(self.apsis_argument))
+
+    def start_speed_calculation(self):
+        return self.start_speed * math.cos(math.radians(self.apsis_argument + 90)), \
+               self.start_speed * math.sin(math.radians(self.apsis_argument + 90))
 
     def update(self, system):
         if not system.map_mode:
@@ -571,7 +588,61 @@ class Moon(Planet, PhysicalObject):
         else:
             self.render_on_map(system.surface)
 
-        self.physical_move(system.game_speed, planets=[system.objects[0]])
+        self.physical_move(system.game_speed, planets=[self.orbit_parent])
+
+    def render_on_map(self, surface):
+        self.image = self.or_map_image
+        self.rect.x, self.rect.y = surface.get_width() // 2 + (self.x - self.radius) / MAP_SIZE, \
+                                   surface.get_height() // 2 + (self.y - self.radius) / MAP_SIZE
+
+        surface.blit(self.ellipse_surface, (self.ellipse_surface_delta[0] + surface.get_width() // 2,
+                                            self.ellipse_surface_delta[1] + surface.get_height() // 2))
+
+    def draw_ellipse(self):
+        distanse = (self.x ** 2 + self.y ** 2) ** 0.5
+
+        a = 1 / (2 / distanse - self.start_speed ** 2 / (GRAVITY * self.orbit_parent.mass * FPS))
+        e = (a - distanse) / a
+        b = a * (1 - e ** 2) ** 0.5
+
+        apoapsis = a * (1 + e)
+        periapsis = a * (1 - e)
+
+        ellipse_surface = pygame.Surface((int(a * 2) // MAP_SIZE, int(b * 2) // MAP_SIZE), pygame.SRCALPHA, 32)
+        ellipse_surface.fill((0, 0, 0, 0))
+
+        pygame.draw.ellipse(ellipse_surface, (0, 100, 0), (0, 0, int(a * 2) // MAP_SIZE, int(b * 2) // MAP_SIZE), 1)
+
+        delta_x = apoapsis // MAP_SIZE
+        delta_y = b // MAP_SIZE
+
+        ellipse_surface, x, y = self.blitRotate((0, 0), (delta_x, delta_y), self.apsis_argument, ellipse_surface)
+        print(apoapsis, periapsis, self.start_speed, self.apsis_argument, delta_x, delta_y)
+
+        return ellipse_surface, (x, y)
+
+    def blitRotate(self, pos, originPos, angle, or_image):
+
+        angle = - angle
+        # calcaulate the axis aligned bounding box of the rotated image
+        w, h = or_image.get_size()
+        box = [pygame.math.Vector2(p) for p in [(0, 0), (w, 0), (w, -h), (0, -h)]]
+        box_rotate = [p.rotate(angle) for p in box]
+        min_box = (min(box_rotate, key=lambda p: p[0])[0], min(box_rotate, key=lambda p: p[1])[1])
+        max_box = (max(box_rotate, key=lambda p: p[0])[0], max(box_rotate, key=lambda p: p[1])[1])
+
+        # calculate the translation of the pivot
+        pivot = pygame.math.Vector2(originPos[0], -originPos[1])
+        pivot_rotate = pivot.rotate(angle)
+        pivot_move = pivot_rotate - pivot
+
+        # calculate the upper left origin of the rotated image
+        origin_x, origin_y = pos[0] - originPos[0] + min_box[0] - pivot_move[0], pos[1] - originPos[1] - max_box[1] + pivot_move[1]
+
+        # get a rotated image
+        image = pygame.transform.rotate(or_image, angle)
+
+        return image, origin_x, origin_y
 
 
 class VirtualObject(PhysicalObject):

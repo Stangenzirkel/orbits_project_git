@@ -196,6 +196,8 @@ class PhysicalObjectOnMap:
         apoapsis = a * (1 + e)
         periapsis = a * (1 - e)
 
+        print(distanse, a, e, b, apoapsis, periapsis, speed)
+
         ellipse_surface = pygame.Surface((int(a * 2), int(b * 2)), pygame.SRCALPHA, 32)
         ellipse_surface.fill((0, 0, 0, 0))
 
