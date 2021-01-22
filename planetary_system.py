@@ -143,6 +143,16 @@ class PlanetarySystem:
                                       orbit_parent=self.objects[int(line[6])],
                                       hp=int(line[7])))
 
+        elif line[0] == 'large_enemy':
+            self.objects.append(LargeEnemy(self,
+                                           int(line[1]),
+                                           int(line[2]),
+                                           int(line[3]),
+                                           float(line[4]),
+                                           float(line[5]),
+                                           orbit_parent=self.objects[int(line[6])],
+                                           hp=int(line[7])))
+
     def draw_cursor(self, rect_size=10):
         pygame.draw.rect(self.surface, 'green', (pygame.mouse.get_pos()[0] - rect_size // 2,
                                                  pygame.mouse.get_pos()[1] - rect_size // 2,
@@ -213,15 +223,18 @@ class PlanetarySystem:
     def simulation(self):
         points = []
         counter = 0
-        simulation_objects = list(map(lambda x: VirtualObject(x), self.objects))
+        simulation_objects = list(map(lambda x: VirtualObject(x),
+                                      list(filter(lambda x: type(x) == Planet or
+                                                            type(x) == Moon or
+                                                            type(x) == Spaceship, self.objects))))
+
         simulation_objects.append(VirtualObject(self.hero))
         for step in range(2500):
             counter = (counter + 1) % 10
             for object in simulation_objects:
-                if type(object.parent) == Spaceship or type(object.parent) == Enemy:
-                    if not counter:
-                        points.append((self.surface.get_width() // 2 + object.x / MAP_SIZE,
-                                       self.surface.get_height() // 2 + object.y / MAP_SIZE))
+                if type(object.parent) == Spaceship and not counter:
+                    points.append((self.surface.get_width() // 2 + object.x / MAP_SIZE,
+                                   self.surface.get_height() // 2 + object.y / MAP_SIZE))
 
                 object.move(10, simulation_objects)
 
@@ -657,7 +670,7 @@ class VirtualObject(PhysicalObject):
         else:
             self.speed_x, self.speed_y = parent.speed_x, parent.speed_y
 
-        if type(parent) == Spaceship or type(parent) == Enemy:
+        if type(parent) == Spaceship:
             self.mass = 0
 
         else:
@@ -680,8 +693,8 @@ class Enemy(pygame.sprite.Sprite, PhysicalObject):
 
         self.angle = angle
 
-        self.or_image = load_image("spaceship.png", -1)
-        self.or_image = pygame.transform.scale(self.or_image, (40, 40))
+        self.or_image = load_image("space_railgun.png", -1)
+        self.or_image = pygame.transform.scale(self.or_image, (20, 50))
 
         self.or_map_image = load_image("spaceship_on_map.png", -1)
         self.or_map_image = pygame.transform.scale(self.or_map_image, (20, 20))
@@ -689,7 +702,7 @@ class Enemy(pygame.sprite.Sprite, PhysicalObject):
         self.rect = self.or_image.get_rect()
         self.image = self.or_image
 
-        self.rect.x, self.rect.y = self.blitRotate((self.x, self.y), (20, 20), self.angle, self.or_image)
+        self.rect.x, self.rect.y = self.blitRotate((self.x, self.y), (10, 50), self.angle, self.or_image)
         self.rotation_speed = rotation_speed
         self.orbit_parent = orbit_parent
         self.hp = hp
@@ -702,8 +715,8 @@ class Enemy(pygame.sprite.Sprite, PhysicalObject):
         self.weapon.set_owner(self)
         self.weapon.set_group(system.bullets)
 
-        self.interface_surface = pygame.surface.Surface((0, 0))
         system.enemies_counter += 1
+        self.shoot_dist = 700
 
     def fire(self):
         self.weapon.fire()
@@ -728,14 +741,14 @@ class Enemy(pygame.sprite.Sprite, PhysicalObject):
         else:
             self.render_on_map(system.surface)
 
-        if self.hero_distanse(system.hero) < 1000:
+        if self.hero_distanse(system.hero) < self.shoot_dist:
             if (self.angle + self.hero_angle(system.hero)) % 360 < 180:
                 self.angle = (self.angle - self.rotation_speed) % 360
 
             else:
                 self.angle = (self.angle + self.rotation_speed) % 360
 
-        if self.hero_distanse(system.hero) < 500 and -20 < (self.angle + self.hero_angle(system.hero)) % 360 < 20:
+        if self.hero_distanse(system.hero) < self.shoot_dist and -20 < (self.angle + self.hero_angle(system.hero)) % 360 < 20:
             self.fire()
 
         if self.orbit_parent:
@@ -750,7 +763,7 @@ class Enemy(pygame.sprite.Sprite, PhysicalObject):
     def render_on_view(self, surface, hero):
         self.rect.x, self.rect.y = self.blitRotate((self.x - hero.x + surface.get_width() // 2,
                                                     self.y - hero.y + surface.get_height() // 2),
-                                                   (20, 20), self.angle, self.or_image)
+                                                   (self.or_image.get_width() // 2, self.or_image.get_height() // 2), self.angle, self.or_image)
 
     def render_on_map(self, surface):
         self.rect.x, self.rect.y = self.blitRotate((surface.get_width() // 2 + self.x / MAP_SIZE,
@@ -786,4 +799,30 @@ class Enemy(pygame.sprite.Sprite, PhysicalObject):
         self.image = pygame.transform.rotate(image, angle)
 
         return origin
+
+
+class LargeEnemy(Enemy):
+    def __init__(self, system, x, y, angle, speed_x, speed_y, rotation_speed=1, orbit_parent=None, hp=50):
+        Enemy.__init__(self, system, x, y, angle, speed_x, speed_y, rotation_speed=rotation_speed, orbit_parent=orbit_parent, hp=hp)
+        self.or_image = load_image("space_gun.png", -1)
+        self.or_image = pygame.transform.scale(self.or_image, (70, 180))
+
+        self.rect = self.or_image.get_rect()
+        self.image = self.or_image
+
+        self.rect.x, self.rect.y = self.blitRotate((self.x, self.y), (35, 90), self.angle, self.or_image)
+        self.rotation_speed = rotation_speed
+        self.orbit_parent = orbit_parent
+        self.hp = hp
+
+        self.weapon = Weapon('minigun_sprite.png', 'shell.png',
+                             life_span=500,
+                             magazine_size=60,
+                             reload_time=1,
+                             bullet_speed=200,
+                             cooldown=10)
+
+        self.weapon.set_owner(self)
+        self.weapon.set_group(system.bullets)
+        self.shoot_dist = 1000
 

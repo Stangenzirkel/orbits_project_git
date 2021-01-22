@@ -2,7 +2,7 @@ import math
 import os
 import pygame
 import copy
-from planetary_system import PhysicalObject, FPS
+from planetary_system import PhysicalObject, FPS, Planet, Moon
 
 
 def load_image(name, color_key=None):
@@ -70,6 +70,10 @@ class Bullet(pygame.sprite.Sprite):
         return origin
 
     def update(self, system):
+        for object in system.objects:
+            if type(object) == Planet or type(object) == Moon:
+                self.collision_with_planet(object)
+
         self.timer += 1
         if self.timer > self.life_span:
             self.destroy()
@@ -90,6 +94,13 @@ class Bullet(pygame.sprite.Sprite):
         else:
             self.rect.x, self.rect.y = -100, -100
 
+    def collision_with_planet(self, planet):
+        delta_x = self.x - planet.x
+        delta_y = self.y - planet.y
+        distanse = (delta_x ** 2 + delta_y ** 2) ** 0.5
+        if distanse < planet.radius - planet.atmosphere_height:
+            self.destroy()
+
 
 # high-damage bullet with physic
 class Shell(PhysicalObject, Bullet):
@@ -102,16 +113,20 @@ class Shell(PhysicalObject, Bullet):
         PhysicalObject.__init__(self, x, y, speed_x=speed_x, speed_y=speed_y)
         Bullet.__init__(self, group, x, y, angle, speed, speed_x, speed_y, life_span)
 
-        self.or_image = load_image("bullet.png", -1)
-        self.or_image = pygame.transform.scale(self.or_image, (40, 20))
+        self.or_image = load_image("bomb.png", -1)
+        self.or_image = pygame.transform.scale(self.or_image, (30, 10))
 
         self.image = self.or_image
         self.rect = self.image.get_rect()
 
-        self.damage = 20
+        self.damage = 50
         self.spawn_no_damage = 1
 
     def update(self, system):
+        for object in system.objects:
+            if type(object) == Planet or type(object) == Moon:
+                self.collision_with_planet(object)
+
         self.timer += 1
         if self.timer > self.life_span:
             self.destroy()
