@@ -90,14 +90,15 @@ class PlanetarySystem:
         self.bullets.draw(self.surface)
         self.bullets.update(self)
 
-        self.hero.draw_interface(self)
-        self.surface.blit(self.hero.interface_surface, (0, 0))
-
         if self.map_mode:
             self.surface.blit(self.font.render('MAP mode', True, 'green'), (20, 20))
             self.draw_cursor()
             for point in self.simulation_points:
                 pygame.draw.circle(self.surface, (0, 100, 0), point, 1)
+
+        else:
+            self.hero.draw_interface(self)
+            self.surface.blit(self.hero.interface_surface, (0, 0))
 
         if self.enemies_counter == 0:
             self.win = self.time_counter // FPS
@@ -711,7 +712,8 @@ class Enemy(pygame.sprite.Sprite, PhysicalObject):
                              magazine_size=60,
                              reload_time=1,
                              bullet_speed=100,
-                             cooldown=40)
+                             cooldown=40,
+                             position=10)
         self.weapon.set_owner(self)
         self.weapon.set_group(system.bullets)
 
@@ -820,7 +822,8 @@ class LargeEnemy(Enemy):
                              magazine_size=60,
                              reload_time=1,
                              bullet_speed=200,
-                             cooldown=10)
+                             cooldown=10,
+                             position=80)
 
         self.weapon.set_owner(self)
         self.weapon.set_group(system.bullets)

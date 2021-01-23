@@ -68,8 +68,8 @@ systems = dict()
 interplanetary_map = InterplanetaryMap(window_size)
 star = StarOnMap(interplanetary_map, 'HR 8799')
 
-cannon_weapon = Weapon('cannon_sprite_2.png', 'shell.png', bullet=Shell, bullet_speed=100, life_span=600)
-minigun_weapon = Weapon('minigun_sprite.png', 'shell.png', life_span=500, magazine_size=60, reload_time=24, bullet_speed=450)
+cannon_weapon = Weapon('cannon_sprite_2.png', 'shell.png', bullet=Shell, bullet_speed=100, life_span=600, position=10)
+minigun_weapon = Weapon('minigun_sprite.png', 'shell.png', life_span=500, magazine_size=60, reload_time=24, bullet_speed=450, position=10)
 
 for key in files.keys():
     load_system(key)

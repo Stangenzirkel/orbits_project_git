@@ -113,8 +113,8 @@ class Shell(PhysicalObject, Bullet):
         PhysicalObject.__init__(self, x, y, speed_x=speed_x, speed_y=speed_y)
         Bullet.__init__(self, group, x, y, angle, speed, speed_x, speed_y, life_span)
 
-        self.or_image = load_image("bomb.png", -1)
-        self.or_image = pygame.transform.scale(self.or_image, (30, 10))
+        self.or_image = load_image("shell_90deg.png", -1)
+        self.or_image = pygame.transform.scale(self.or_image, (30, 5))
 
         self.image = self.or_image
         self.rect = self.image.get_rect()
@@ -148,12 +148,15 @@ class Weapon:
                  reload_time=100,
                  cooldown=4,
                  bullet=Bullet,
-                 bullet_speed=60):
+                 bullet_speed=60,
+                 position=0):
+
         self.collision_radius = collision_radius
         self.life_span = life_span
         self.special = special
         self.bullet = bullet
         self.bullet_speed = bullet_speed
+        self.position = position
 
         self.owner = None
         self.group = None
@@ -187,8 +190,8 @@ class Weapon:
                 self.cooldown_timer == self.cooldown:
             self.bullet(
                 self.group,
-                self.owner.x,
-                self.owner.y,
+                self.owner.x + math.cos(math.radians(self.owner.angle)) * self.position,
+                self.owner.y + math.sin(math.radians(self.owner.angle)) * self.position,
                 self.owner.angle,
                 self.bullet_speed,
                 speed_x=self.owner.speed_x,
