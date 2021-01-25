@@ -78,6 +78,7 @@ hero = HeroOnMap(interplanetary_map, interplanetary_map.objects[-1])
 interplanetary_map_mode = True
 current_system = systems[interplanetary_map.hero.planet.id]
 
+
 running = True
 clock = pygame.time.Clock()
 
@@ -85,6 +86,14 @@ REDRAW_EVENT = pygame.USEREVENT + 1
 pygame.time.set_timer(REDRAW_EVENT, 1000 // FPS)
 
 screen.fill('black')
+if interplanetary_map_mode:
+    interplanetary_map.update()
+    screen.blit(interplanetary_map.surface(), (0, 0))
+
+else:
+    current_system.update()
+    screen.blit(current_system.surface, (0, 0))
+
 
 while running:
     clock.tick(FPS)
@@ -141,5 +150,9 @@ while running:
                 current_system = systems[current_system.id]
 
             current_system = systems[interplanetary_map.hero.planet.id]
-    pygame.display.flip()
+    print('in loop')
+#    if not interplanetary_map_mode and not current_system.map_mode:
+#        MANUAL_CURSOR = pygame.image.load('data/aim.png').convert_alpha()
+#        screen.blit(MANUAL_CURSOR, (pygame.mouse.get_pos()))
+pygame.display.flip()
 pygame.quit()
