@@ -56,7 +56,7 @@ infoObject = pygame.display.Info()
 window_size = (infoObject.current_w, infoObject.current_h)
 screen = pygame.display.set_mode(window_size)
 font = pygame.font.Font(None, 80)
-text = font.render("Now loading", False , (100, 255, 100))
+text = font.render("Now loading", False, (100, 255, 100))
 text_x = infoObject.current_w // 2 - text.get_width() // 2
 text_y = infoObject.current_h // 2 - text.get_height() // 2
 text_w = text.get_width()
@@ -69,7 +69,8 @@ interplanetary_map = InterplanetaryMap(window_size)
 star = StarOnMap(interplanetary_map, 'HR 8799')
 
 cannon_weapon = Weapon('cannon_sprite_2.png', 'shell.png', bullet=Shell, bullet_speed=100, life_span=600, position=10)
-minigun_weapon = Weapon('minigun_sprite.png', 'shell.png', life_span=500, magazine_size=60, reload_time=24, bullet_speed=450, position=10)
+minigun_weapon = Weapon('minigun_sprite.png', 'shell.png', life_span=500, magazine_size=60, reload_time=24,
+                        bullet_speed=450, position=10)
 
 for key in files.keys():
     load_system(key)
@@ -77,7 +78,7 @@ for key in files.keys():
 hero = HeroOnMap(interplanetary_map, interplanetary_map.objects[-1])
 interplanetary_map_mode = True
 current_system = systems[interplanetary_map.hero.planet.id]
-
+current_system.map_mode = False
 
 running = True
 clock = pygame.time.Clock()
@@ -85,16 +86,12 @@ clock = pygame.time.Clock()
 REDRAW_EVENT = pygame.USEREVENT + 1
 pygame.time.set_timer(REDRAW_EVENT, 1000 // FPS)
 
+aim = pygame.image.load(os.path.join('data', 'aim.png')).convert()
+aim = pygame.transform.scale(aim, (20, 20))
+
 screen.fill('black')
-if interplanetary_map_mode:
-    interplanetary_map.update()
-    screen.blit(interplanetary_map.surface(), (0, 0))
-
-else:
-    current_system.update()
-    screen.blit(current_system.surface, (0, 0))
-
-
+pygame.mouse.set_pos(window_size[0] // 2, window_size[1] // 2)
+current_system.add_arrows()
 while running:
     clock.tick(FPS)
     for event in pygame.event.get():
@@ -110,11 +107,21 @@ while running:
             else:
                 current_system.update()
                 screen.blit(current_system.surface, (0, 0))
+                pos = pygame.mouse.get_pos()
+                screen.blit(aim, (pos[0] - 10, pos[1] - 10))
 
         elif event.type == pygame.KEYDOWN and (current_system.hero.destroyed or current_system.win):
             interplanetary_map_mode = True
             load_system(current_system.id, new=False)
             current_system = systems[current_system.id]
+            current_system.add_arrows()
+
+        elif event.type == pygame.KEYDOWN and not (current_system.hero.destroyed or current_system.win):
+            interplanetary_map_mode = False
+            current_system.map_mode = False
+
+        elif event.type == pygame.KEYDOWN and event.key == pygame.K_F4:
+            exit(0)
 
         elif event.type == pygame.KEYDOWN and not current_system.hero.destroyed and not current_system.win:
             if not interplanetary_map_mode:
@@ -150,9 +157,5 @@ while running:
                 current_system = systems[current_system.id]
 
             current_system = systems[interplanetary_map.hero.planet.id]
-    print('in loop')
-#    if not interplanetary_map_mode and not current_system.map_mode:
-#        MANUAL_CURSOR = pygame.image.load('data/aim.png').convert_alpha()
-#        screen.blit(MANUAL_CURSOR, (pygame.mouse.get_pos()))
-pygame.display.flip()
+    pygame.display.flip()
 pygame.quit()
