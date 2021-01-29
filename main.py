@@ -62,6 +62,9 @@ text_y = infoObject.current_h // 2 - text.get_height() // 2
 text_w = text.get_width()
 text_h = text.get_height()
 screen.blit(text, (text_x, text_y))
+font = pygame.font.Font(None, 30)
+text_1 = font.render("""'f' - to fire minigun | 'g' - to fire shell | move mouse to change direction | 'space' - for activating engine | to win - kill all of the enemies""", False, (100, 255, 100))
+screen.blit(text_1, ((infoObject.current_w - text_1.get_width()) // 2, 600))
 pygame.display.update()
 
 systems = dict()
@@ -88,10 +91,21 @@ pygame.time.set_timer(REDRAW_EVENT, 1000 // FPS)
 
 aim = pygame.image.load(os.path.join('data', 'aim.png')).convert()
 aim = pygame.transform.scale(aim, (20, 20))
+instruction = True
+
+text_2 = font.render('press any button to continue', False, (100, 255, 100))
+screen.blit(text_2, (100, 700))
+pygame.display.update()
+while instruction:
+    for event in pygame.event.get():
+        if event.type == pygame.KEYDOWN:
+            instruction = False
+    clock.tick(10)
 
 screen.fill('black')
 pygame.mouse.set_pos(window_size[0] // 2, window_size[1] // 2)
 current_system.add_arrows()
+
 while running:
     clock.tick(FPS)
     for event in pygame.event.get():
