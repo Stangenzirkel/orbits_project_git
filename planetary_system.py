@@ -93,13 +93,15 @@ class PlanetarySystem:
         self.all_view_sprites.draw(self.surface)
         self.all_view_sprites.update(self)
 
-        self.bullets.draw(self.surface)
+        if not self.map_mode:
+            self.bullets.draw(self.surface)
         self.bullets.update(self)
 
         self.enemies.draw(self.surface)
         self.enemies.update(self)
 
-        self.arrows.draw(self.surface)
+        if not self.map_mode:
+            self.arrows.draw(self.surface)
         self.arrows.update(self)
 
         if self.map_mode:
@@ -133,7 +135,8 @@ class PlanetarySystem:
                                        int(line[3]),
                                        int(line[4]),
                                        str(line[5]),
-                                       int(line[6])))
+                                       int(line[6]),
+                                       int(line[7])))
 
         elif line[0] == 'moon':
             self.objects.append(Moon(self.all_view_sprites,
@@ -144,7 +147,8 @@ class PlanetarySystem:
                                      int(line[4]),
                                      int(line[5]),
                                      str(line[6]),
-                                     int(line[7])))
+                                     int(line[7]),
+                                     int(line[8])))
 
         elif line[0] == 'enemy':
             self.objects.append(Enemy(self.enemies,
@@ -157,6 +161,7 @@ class PlanetarySystem:
                                       orbit_parent=self.objects[int(line[6])],
                                       hp=int(line[7])))
             self.enemies_list.append(self.objects[-1])
+
         elif line[0] == 'large_enemy':
             self.objects.append(LargeEnemy(self.enemies,
                                            self,
@@ -446,7 +451,7 @@ class Arrow(pygame.sprite.Sprite):
         if not system.map_mode:
             self.render_on_view(system.surface)
         if self.enemy is None:
-            self.kell()
+            self.kill()
             del self
 
     def destroy(self):
@@ -528,6 +533,7 @@ class Spaceship(pygame.sprite.Sprite, PhysicalObject, EngineObject):
 
         for key in self.weapons.keys():
             self.weapons[key].update()
+
         infoObject = pygame.display.Info()
         x1, y1 = pygame.mouse.get_pos()
         x2, y2 = (infoObject.current_w // 2, infoObject.current_h // 2)
@@ -620,13 +626,14 @@ class Spaceship(pygame.sprite.Sprite, PhysicalObject, EngineObject):
 
 
 class Planet(pygame.sprite.Sprite):
-    def __init__(self, group, x, y, radius, mass, filename, atmosphere_height):
+    def __init__(self, group, x, y, radius, mass, filename, atmosphere_height, atmosphere_color):
         pygame.sprite.Sprite.__init__(self, group)
         self.x, self.y = x, y
         self.speed_x, self.speed_y = 0, 0
         self.radius = radius
         self.mass = mass
         self.atmosphere_height = atmosphere_height
+        self.atmosphere_color = atmosphere_color
 
         self.or_map_image = pygame.surface.Surface((radius * 2 // MAP_SIZE, radius * 2 // MAP_SIZE), pygame.SRCALPHA,
                                                    32)
@@ -665,9 +672,20 @@ class Planet(pygame.sprite.Sprite):
 
         if atmosphere_height:
             for h in range(0, atmosphere_height, 5):
-                pygame.draw.circle(image, (10, 50, 100, h * (255 // atmosphere_height)),
-                                   (self.radius, self.radius),
-                                   self.radius - h)
+                if self.atmosphere_color == 0:
+                    pygame.draw.circle(image, (10, 50, 100, h * (255 // atmosphere_height)),
+                                    (self.radius, self.radius),
+                                    self.radius - h)
+
+                elif self.atmosphere_color == 1:
+                    pygame.draw.circle(image, (100, 10, 10, h * (255 // atmosphere_height)),
+                                    (self.radius, self.radius),
+                                    self.radius - h)
+
+                elif self.atmosphere_color == 2:
+                    pygame.draw.circle(image, (100, 100, 10, h * (255 // atmosphere_height)),
+                                    (self.radius, self.radius),
+                                    self.radius - h)
 
         image.blit(planet, (atmosphere_height, atmosphere_height))
         return image
@@ -675,7 +693,7 @@ class Planet(pygame.sprite.Sprite):
 
 class Moon(Planet, PhysicalObject):
     def __init__(self, group, start_height, start_speed, orbit_parent, apsis_argument, radius, mass, filename,
-                 atmosphere_height):
+                 atmosphere_height, atmosphere_color):
         self.start_height = start_height
         self.start_speed = start_speed
         self.apsis_argument = apsis_argument
@@ -684,7 +702,7 @@ class Moon(Planet, PhysicalObject):
         x, y = self.start_position_calculation()
         speed_x, speed_y = self.start_speed_calculation()
 
-        Planet.__init__(self, group, x, y, radius, mass, filename, atmosphere_height)
+        Planet.__init__(self, group, x, y, radius, mass, filename, atmosphere_height, atmosphere_color)
         PhysicalObject.__init__(self, x, y, speed_x, speed_y)
         self.ellipse_surface, self.ellipse_surface_delta = self.draw_ellipse()
 
@@ -827,8 +845,8 @@ class Enemy(pygame.sprite.Sprite, PhysicalObject):
 
     def destroy(self, system):
         system.enemies_counter -= 1
-        system.enemies_list.remove(self)
         system.arrows_list[self].destroy()
+        system.enemies_list.remove(self)
         self.kill()
         del self
 

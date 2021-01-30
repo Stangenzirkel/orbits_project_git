@@ -63,10 +63,17 @@ text_w = text.get_width()
 text_h = text.get_height()
 screen.blit(text, (text_x, text_y))
 font = pygame.font.Font(None, 30)
+
 text_1 = font.render(
-    """'f' - to fire minigun | 'g' - to fire shell | move mouse to change direction | 'space' - for activating engine | to win - kill all of the enemies | red rect - hp | white rect - enemies | 'n' - enter level""",
+    """'f' - to fire minigun | 'g' - to fire shell | move mouse to change direction | 'space' - for activating engine""",
     False, (100, 255, 100))
 screen.blit(text_1, ((infoObject.current_w - text_1.get_width()) // 2, 600))
+
+text_2 = font.render(
+    """to win - kill all of the enemies | red rect - hp | white rect - enemies | 'n' - enter level""",
+    False, (100, 255, 100))
+screen.blit(text_2, ((infoObject.current_w - text_2.get_width()) // 2, 640))
+
 pygame.display.update()
 
 systems = dict()
@@ -95,8 +102,8 @@ aim = pygame.image.load(os.path.join('data', 'aim.png')).convert()
 aim = pygame.transform.scale(aim, (20, 20))
 instruction = True
 
-text_2 = font.render('press any button to continue', False, (100, 255, 100))
-screen.blit(text_2, (100, 700))
+text_3 = font.render('press any button to continue', False, (100, 255, 100))
+screen.blit(text_3, ((infoObject.current_w - text_3.get_width()) // 2, 680))
 pygame.display.update()
 while instruction:
     for event in pygame.event.get():
@@ -124,18 +131,14 @@ while running:
                 current_system.update()
                 screen.blit(current_system.surface, (0, 0))
                 pos = pygame.mouse.get_pos()
-                screen.blit(aim, (pos[0] - 10, pos[1] - 10))
+                if not current_system.map_mode:
+                    screen.blit(aim, (pos[0] - 10, pos[1] - 10))
 
         elif event.type == pygame.KEYDOWN and (current_system.hero.destroyed or current_system.win):
             interplanetary_map_mode = True
             load_system(current_system.id, new=False)
             current_system = systems[current_system.id]
             current_system.add_arrows()
-
-
-        elif event.type == pygame.KEYDOWN and not (current_system.hero.destroyed or current_system.win):
-            interplanetary_map_mode = False
-            current_system.map_mode = False
 
         elif event.type == pygame.KEYDOWN and event.key == pygame.K_F4:
             exit(0)
@@ -152,8 +155,7 @@ while running:
                     current_system.game_speed //= 5
 
                 if event.key == pygame.K_m:
-                    current_system.map_mode = not systems[
-                        interplanetary_map.hero.planet.id].map_mode
+                    current_system.map_mode = not current_system.map_mode
 
             if event.key == pygame.K_n and \
                     not interplanetary_map.hero.in_travel:
@@ -173,6 +175,7 @@ while running:
             elif cmd == 1 and not interplanetary_map.hero.in_travel:
                 load_system(current_system.id, new=False)
                 current_system = systems[current_system.id]
+                current_system.add_arrows()
 
             current_system = systems[interplanetary_map.hero.planet.id]
             current_system.add_arrows()
