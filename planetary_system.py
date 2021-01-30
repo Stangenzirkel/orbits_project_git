@@ -475,7 +475,7 @@ class Spaceship(pygame.sprite.Sprite, PhysicalObject, EngineObject):
         self.destroyed = None
         self.weapons = dict()
         self.interface_surface = pygame.surface.Surface((0, 0))
-        self.hp = 300
+        self.hp = 60
         self.arrows = pygame.sprite.Group()
 
     def fire(self, id):
@@ -613,7 +613,7 @@ class Spaceship(pygame.sprite.Sprite, PhysicalObject, EngineObject):
                                                  self.interface_surface.get_height() - 240 + j * weapon.bullet_image.get_height()))
 
         for i in range(self.hp):
-            pygame.draw.rect(self.interface_surface, 'white', (20 + i * 10, 20, 8, 20))
+            pygame.draw.rect(self.interface_surface, 'red', (20 + i * 10, 20, 8, 20))
 
         for i in range(system.enemies_counter):
             pygame.draw.rect(self.interface_surface, 'white', (20 + i * 10, 42, 8, 20))
