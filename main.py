@@ -63,7 +63,9 @@ text_w = text.get_width()
 text_h = text.get_height()
 screen.blit(text, (text_x, text_y))
 font = pygame.font.Font(None, 30)
-text_1 = font.render("""'f' - to fire minigun | 'g' - to fire shell | move mouse to change direction | 'space' - for activating engine | to win - kill all of the enemies | red rect - hp | white rect - enemies | 'n' - enter level""", False, (100, 255, 100))
+text_1 = font.render(
+    """'f' - to fire minigun | 'g' - to fire shell | move mouse to change direction | 'space' - for activating engine | to win - kill all of the enemies | red rect - hp | white rect - enemies | 'n' - enter level""",
+    False, (100, 255, 100))
 screen.blit(text_1, ((infoObject.current_w - text_1.get_width()) // 2, 600))
 pygame.display.update()
 
